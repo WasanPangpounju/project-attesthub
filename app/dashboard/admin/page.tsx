@@ -81,6 +81,19 @@ const navItems = [
 ];
 
 export default function AdminDashboard() {
+  const [allowed, setAllowed] = useState(false);
+
+  useEffect(() => {
+    const FORCE_ADMIN = true; // 🔒 hard-code ตรงนี้
+
+    if (FORCE_ADMIN) {
+      setAllowed(true);
+      return;
+    }
+
+    // ---- logic เดิม (ยังไม่ใช้) ----
+    // fetch profile / check role === 'admin'
+  }, []);  
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -164,8 +177,11 @@ export default function AdminDashboard() {
     );
   };
 
+  // return (
+  //   <RoleGuard allowedRoles={['admin']}>
   return (
-    <RoleGuard allowedRoles={['admin']}>
+    <div className="flex min-h-screen bg-background">
+      {/* ...UI ทั้งหมดเดิม... */}
       <div className="flex min-h-screen bg-background">
       {/* Mobile overlay -> button (WCAG) */}
       {sidebarOpen && (
@@ -382,6 +398,9 @@ export default function AdminDashboard() {
         </div>
       </main>
     </div>
-    </RoleGuard>
+        </div>
   );
 }
+//     </RoleGuard>
+//   );
+// }

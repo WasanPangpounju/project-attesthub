@@ -9,6 +9,10 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const router = useRouter();
+//hard code เข้า admin
+  useEffect(() => {
+    router.replace('/dashboard/admin');
+  }, [router]);
 
   useEffect(() => {
     const fetchUserAndRedirect = async () => {
