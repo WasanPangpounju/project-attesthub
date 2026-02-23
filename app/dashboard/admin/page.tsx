@@ -149,8 +149,12 @@ export default function AdminDashboard() {
     const pending = items.filter((x) => x.status === "pending").length;
     const completed = items.filter((x) => x.status === "completed").length;
 
-    const testerSet = new Set<string>();
-    items.forEach((x) => (x.assignedTesters || []).forEach((t) => testerSet.add(t.testerId)));
+    const activeTesterSet = new Set<string>();
+    items.forEach((x) =>
+      (x.assignedTesters || [])
+        .filter((t) => t.workStatus === "accepted" || t.workStatus === "working")
+        .forEach((t) => activeTesterSet.add(t.testerId))
+    );
 
     const pct = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "0%");
 
@@ -158,7 +162,7 @@ export default function AdminDashboard() {
       { title: "Active Audits", value: String(active), change: pct(active), icon: LayoutDashboard },
       { title: "Pending Assignments", value: String(pending), change: pct(pending), icon: Users },
       { title: "Completed Reports", value: String(completed), change: pct(completed), icon: FileText },
-      { title: "Active Testers", value: String(testerSet.size), change: `+${testerSet.size}`, icon: Network },
+      { title: "Active Testers", value: String(activeTesterSet.size), change: `+${activeTesterSet.size}`, icon: Network },
     ];
   }, [items]);
 

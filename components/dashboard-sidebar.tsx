@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { FolderOpen, FileText, Menu, X, Shield, LogOut } from "lucide-react"
 // 1. Import Clerk Components
 import { UserButton, useUser, SignOutButton } from "@clerk/nextjs"
+import { Users } from "lucide-react"
 
 const navItems = [
   {
@@ -20,6 +21,14 @@ const navItems = [
     icon: FileText,
   },
   // ลบ Profile ออกจากรายการด้านบน เพราะจะเอาไปไว้ด้านล่างแทน
+]
+
+const adminNavItems = [
+  {
+    title: "Users",
+    href: "/dashboard/admin/users",
+    icon: Users,
+  },
 ]
 
 export function DashboardSidebar() {
@@ -79,6 +88,27 @@ export function DashboardSidebar() {
                 </Link>
               )
             })}
+
+            {/* Admin section */}
+            <div className="pt-2">
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Admin
+              </p>
+              {adminNavItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <Link key={item.href} href={item.href} onClick={() => setIsOpen(false)}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground hover:bg-accent"
+                    >
+                      <Icon className="h-5 w-5" />
+                      {item.title}
+                    </Button>
+                  </Link>
+                )
+              })}
+            </div>
           </nav>
 
           {/* 3. Footer: User Profile & Sign Out Section */}

@@ -28,6 +28,7 @@ export interface AssignedTester {
   acceptedAt?: Date;
   completedAt?: Date;
   note?: string;
+  progressPercent?: number;
 }
 
 export interface StatusHistoryItem {
@@ -36,6 +37,23 @@ export interface StatusHistoryItem {
   changedAt: Date;
   changedBy?: string; // adminId
   note?: string;
+}
+
+export interface IComment {
+  authorId: string;
+  authorName: string;
+  text: string;
+  createdAt: Date;
+}
+
+export interface IAttachment {
+  uploadedBy: string;
+  name: string;
+  size: number;
+  type: string;
+  url?: string;
+  testCaseId?: string;
+  uploadedAt: Date;
 }
 
 export interface IAuditRequest {
@@ -65,6 +83,9 @@ export interface IAuditRequest {
   // ✅ ประวัติสถานะ
   statusHistory: StatusHistoryItem[];
 
+  comments: IComment[];
+  attachments: IAttachment[];
+
   // optional admin fields
   priority?: "low" | "normal" | "high" | "urgent";
   dueDate?: Date;
@@ -92,6 +113,7 @@ const AssignedTesterSchema = new Schema<AssignedTester>(
     acceptedAt: { type: Date },
     completedAt: { type: Date },
     note: { type: String, default: "" },
+    progressPercent: { type: Number, default: 0, min: 0, max: 100 },
   },
   { _id: false }
 );
@@ -105,6 +127,29 @@ const StatusHistorySchema = new Schema<StatusHistoryItem>(
     note: { type: String, default: "" },
   },
   { _id: false }
+);
+
+const CommentSchema = new Schema(
+  {
+    authorId: { type: String, required: true },
+    authorName: { type: String, required: true },
+    text: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: true }
+);
+
+const AttachmentSchema = new Schema(
+  {
+    uploadedBy: { type: String, required: true },
+    name: { type: String, required: true },
+    size: { type: Number, required: true },
+    type: { type: String, required: true },
+    url: { type: String },
+    testCaseId: { type: String },
+    uploadedAt: { type: Date, default: Date.now },
+  },
+  { _id: true }
 );
 
 const AuditRequestSchema = new Schema<IAuditRequest>(
@@ -137,6 +182,9 @@ const AuditRequestSchema = new Schema<IAuditRequest>(
     assignedTesters: { type: [AssignedTesterSchema], default: [] },
     statusHistory: { type: [StatusHistorySchema], default: [] },
 
+    comments: { type: [CommentSchema], default: [] },
+    attachments: { type: [AttachmentSchema], default: [] },
+
     priority: { type: String, enum: ["low", "normal", "high", "urgent"], default: "normal" },
     dueDate: { type: Date },
     adminNotes: { type: String, default: "" },
@@ -147,7 +195,7 @@ const AuditRequestSchema = new Schema<IAuditRequest>(
   { timestamps: true }
 );
 
-// ✅ กัน tester ซ้ำ “ในระดับ model” (ช่วยกันพลาด)
+// ✅ กัน tester ซ้ำ "ในระดับ model" (ช่วยกันพลาด)
 // หมายเหตุ: กันได้ตอน save/create แต่การ update แบบ $push ต้องกันฝั่ง API ด้วย
 AuditRequestSchema.path("assignedTesters").validate(function (arr: AssignedTester[]) {
   const ids = arr.map((x) => x.testerId);

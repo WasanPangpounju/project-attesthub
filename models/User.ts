@@ -9,6 +9,8 @@ interface IUser extends Document {
   role?: 'admin' | 'tester' | 'customer';
   roleAssigned: boolean;
   status: 'active' | 'suspended';
+  adminNote?: string;
+  isPreRegistered: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +34,8 @@ const UserSchema = new Schema<IUser>({
     enum: ['active', 'suspended'],
     default: 'active',
   },
+  adminNote: { type: String, default: "" },
+  isPreRegistered: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

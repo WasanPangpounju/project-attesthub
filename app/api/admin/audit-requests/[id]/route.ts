@@ -80,7 +80,7 @@ export async function GET(req: Request, ctx: any) {
 
     // 2) native: string (เผื่อเคยบันทึกแบบ string)
     if (!item) {
-      item = await col.findOne({ _id: requestedId });
+      item = await col.findOne({ _id: requestedId as unknown as mongoose.Types.ObjectId });
     }
 
     // 3) fallback: mongoose model

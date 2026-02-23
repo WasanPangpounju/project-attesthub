@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:/Users/Friendly Dev/project/project-attesthub\" log --oneline -10)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx tsx:*)",
+      "Bash(MONGODB_URI=\"mongodb+srv://Wasan:s6aIg06MdtUfIrOS@cluster0.n5liros.mongodb.net/attesthub?retryWrites=true&w=majority&appName=Cluster0\" MONGODB_DB=\"attesthub\" npx tsx -e \":*)",
+      "Bash(MONGODB_URI=\"mongodb+srv://Wasan:s6aIg06MdtUfIrOS@cluster0.n5liros.mongodb.net/attesthub?retryWrites=true&w=majority&appName=Cluster0\" node:*)",
+      "Bash(npx next lint)",
+      "Bash(npx next lint:*)",
+      "Bash(cd \"C:/Users/Friendly Dev/project/project-attesthub\" && npm run build 2>&1)"
+    ]
+  }
+}
