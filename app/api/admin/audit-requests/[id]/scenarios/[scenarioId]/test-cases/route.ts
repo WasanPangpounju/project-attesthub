@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
+import AuditRequest from "@/models/audit-request";
 import Scenario from "@/models/scenario";
 import TestCase from "@/models/test-case";
 
@@ -15,15 +16,22 @@ async function requireAdmin(userId: string | null) {
   return user?.role === "admin" ? user : null;
 }
 
-export async function GET(req: NextRequest, { params }: RouteContext) {
+export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     await connectToDatabase();
 
-    const admin = await requireAdmin(userId);
-    if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const { id, scenarioId } = await params;
 
-    const { scenarioId } = await params;
+    // Allow admin OR the project owner (customer)
+    const admin = await requireAdmin(userId);
+    if (!admin) {
+      const auditRequest = await AuditRequest.findById(id).lean();
+      if (!auditRequest || auditRequest.customerId !== userId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
 
     const testCases = await TestCase.find({ scenarioId }).sort({ order: 1 }).lean();
 

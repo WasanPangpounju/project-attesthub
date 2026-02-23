@@ -20,6 +20,20 @@ export interface ITesterResult {
   testedAt?: Date;
 }
 
+export interface IRecommendation {
+  _id?: string;
+  title: string;
+  description: string;
+  severity: "critical" | "high" | "medium" | "low";
+  howToFix: string;
+  technique?: string;
+  referenceUrl?: string;
+  codeSnippet?: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface ITestCase {
   scenarioId: string;
   auditRequestId: string;
@@ -30,6 +44,7 @@ export interface ITestCase {
   priority: "low" | "medium" | "high" | "critical";
   order: number;
   results: ITesterResult[];
+  recommendations: IRecommendation[];
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -70,6 +85,24 @@ const TesterResultSchema = new Schema<ITesterResult>(
   { _id: true }
 );
 
+const RecommendationSchema = new Schema<IRecommendation>(
+  {
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    severity: {
+      type: String,
+      enum: ["critical", "high", "medium", "low"],
+      default: "medium",
+    },
+    howToFix: { type: String, required: true },
+    technique: { type: String },
+    referenceUrl: { type: String },
+    codeSnippet: { type: String },
+    createdBy: { type: String, required: true },
+  },
+  { _id: true, timestamps: true }
+);
+
 const TestCaseSchema = new Schema<ITestCase>(
   {
     scenarioId: { type: String, required: true, index: true },
@@ -85,6 +118,7 @@ const TestCaseSchema = new Schema<ITestCase>(
     },
     order: { type: Number, default: 0 },
     results: { type: [TesterResultSchema], default: [] },
+    recommendations: { type: [RecommendationSchema], default: [] },
     createdBy: { type: String, required: true },
   },
   { timestamps: true }

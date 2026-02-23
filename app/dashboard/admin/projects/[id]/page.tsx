@@ -154,6 +154,7 @@ interface TestCase {
   priority: "low" | "medium" | "high" | "critical";
   order: number;
   results: TesterResult[];
+  recommendations: IRecommendationLocal[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -166,6 +167,29 @@ interface TCFormState {
   expectedResult: string;
   steps: TestStep[];
   order: string;
+}
+
+interface IRecommendationLocal {
+  _id: string;
+  title: string;
+  description: string;
+  severity: "critical" | "high" | "medium" | "low";
+  howToFix: string;
+  technique?: string;
+  referenceUrl?: string;
+  codeSnippet?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+interface RecFormState {
+  title: string;
+  description: string;
+  severity: "critical" | "high" | "medium" | "low";
+  howToFix: string;
+  technique: string;
+  referenceUrl: string;
+  codeSnippet: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -191,6 +215,10 @@ const DEFAULT_SCENARIO_FORM = { title: "", description: "", assignedTesterId: ""
 const DEFAULT_TC_FORM: TCFormState = {
   title: "", description: "", priority: "medium", expectedResult: "", steps: [], order: "",
 };
+const DEFAULT_REC_FORM: RecFormState = {
+  title: "", description: "", severity: "medium",
+  howToFix: "", technique: "", referenceUrl: "", codeSnippet: "",
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -212,6 +240,16 @@ function getPriorityBadgeClass(priority: string) {
     case "medium": return "bg-yellow-100 text-yellow-800";
     case "low": return "bg-gray-100 text-gray-600";
     default: return "bg-gray-100 text-gray-600";
+  }
+}
+
+function getSeverityBadgeClass(severity: string) {
+  switch (severity) {
+    case "critical": return "bg-red-100 text-red-800";
+    case "high":     return "bg-orange-100 text-orange-800";
+    case "medium":   return "bg-yellow-100 text-yellow-800";
+    case "low":      return "bg-blue-100 text-blue-800";
+    default:         return "bg-gray-100 text-gray-600";
   }
 }
 
@@ -392,6 +430,15 @@ export default function AdminProjectDetailPage() {
   const [tcForm, setTCForm] = useState<TCFormState>({ ...DEFAULT_TC_FORM });
   const [tcFormError, setTCFormError] = useState("");
   const [submittingTC, setSubmittingTC] = useState(false);
+
+  // ─── Recommendations ──────────────────────────────────────────────────────
+  const [addRecOpen, setAddRecOpen] = useState<string | null>(null);
+  const [editRec, setEditRec] = useState<IRecommendationLocal | null>(null);
+  const [deleteRecTarget, setDeleteRecTarget] = useState<{ tcId: string; recId: string } | null>(null);
+  const [deletingRec, setDeletingRec] = useState(false);
+  const [submittingRec, setSubmittingRec] = useState(false);
+  const [recForm, setRecForm] = useState<RecFormState>({ ...DEFAULT_REC_FORM });
+  const [recFormError, setRecFormError] = useState("");
 
   // Fetch scenarios when tab = testcases
   useEffect(() => {
@@ -674,6 +721,78 @@ export default function AdminProjectDetailPage() {
     } finally {
       setDeletingTC(false);
       setDeleteTCId(null);
+    }
+  }
+
+  // ─── Recommendation handlers ───────────────────────────────────────────────
+
+  async function handleSubmitRec(tcId: string) {
+    if (!selectedScenario) return;
+    if (!recForm.title.trim()) { setRecFormError("Title is required"); return; }
+    if (!recForm.description.trim()) { setRecFormError("Description is required"); return; }
+    if (!recForm.howToFix.trim()) { setRecFormError("How to fix is required"); return; }
+    setRecFormError("");
+    setSubmittingRec(true);
+    try {
+      const url = editRec
+        ? `/api/admin/audit-requests/${encodeURIComponent(id)}/scenarios/${encodeURIComponent(selectedScenario._id)}/test-cases/${encodeURIComponent(tcId)}/recommendations/${encodeURIComponent(editRec._id)}`
+        : `/api/admin/audit-requests/${encodeURIComponent(id)}/scenarios/${encodeURIComponent(selectedScenario._id)}/test-cases/${encodeURIComponent(tcId)}/recommendations`;
+      const res = await fetch(url, {
+        method: editRec ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: recForm.title.trim(),
+          description: recForm.description.trim(),
+          severity: recForm.severity,
+          howToFix: recForm.howToFix.trim(),
+          technique: recForm.technique.trim() || undefined,
+          referenceUrl: recForm.referenceUrl.trim() || undefined,
+          codeSnippet: recForm.codeSnippet.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error((d as { error?: string })?.error || `Request failed (${res.status})`);
+      }
+      const { data } = await res.json() as { data: IRecommendationLocal };
+      setTestCases((prev) => prev.map((tc) => {
+        if (tc._id !== tcId) return tc;
+        const recs = editRec
+          ? tc.recommendations.map((r) => r._id === data._id ? data : r)
+          : [...(tc.recommendations ?? []), data];
+        return { ...tc, recommendations: recs };
+      }));
+      setAddRecOpen(null);
+      setEditRec(null);
+      toast.success(editRec ? "Recommendation updated" : "Recommendation added");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save recommendation");
+    } finally {
+      setSubmittingRec(false);
+    }
+  }
+
+  async function handleDeleteRec(tcId: string, recId: string) {
+    if (!selectedScenario) return;
+    setDeletingRec(true);
+    try {
+      const res = await fetch(
+        `/api/admin/audit-requests/${encodeURIComponent(id)}/scenarios/${encodeURIComponent(selectedScenario._id)}/test-cases/${encodeURIComponent(tcId)}/recommendations/${encodeURIComponent(recId)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error((d as { error?: string })?.error || `Request failed (${res.status})`);
+      }
+      setTestCases((prev) => prev.map((tc) =>
+        tc._id !== tcId ? tc : { ...tc, recommendations: tc.recommendations.filter((r) => r._id !== recId) }
+      ));
+      toast.success("Recommendation deleted");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete recommendation");
+    } finally {
+      setDeletingRec(false);
+      setDeleteRecTarget(null);
     }
   }
 
@@ -1413,6 +1532,107 @@ export default function AdminProjectDetailPage() {
                                           </div>
                                         </div>
                                       )}
+
+                                      {/* Expert Recommendations */}
+                                      <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                            Expert Recommendations ({tc.recommendations?.length ?? 0})
+                                          </p>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="gap-1 text-xs h-7"
+                                            onClick={() => {
+                                              setEditRec(null);
+                                              setRecForm({ ...DEFAULT_REC_FORM });
+                                              setRecFormError("");
+                                              setAddRecOpen(tc._id);
+                                            }}
+                                          >
+                                            <Plus className="h-3 w-3" />
+                                            Add
+                                          </Button>
+                                        </div>
+
+                                        {(tc.recommendations ?? []).length === 0 ? (
+                                          <p className="text-xs text-muted-foreground italic">No recommendations yet.</p>
+                                        ) : (
+                                          <div className="space-y-2">
+                                            {tc.recommendations.map((rec) => (
+                                              <div key={rec._id} className="border rounded-lg p-3 space-y-2">
+                                                <div className="flex items-start justify-between gap-2">
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-sm font-medium">{rec.title}</span>
+                                                    <Badge className={cn("text-xs", getSeverityBadgeClass(rec.severity))}>
+                                                      {rec.severity}
+                                                    </Badge>
+                                                  </div>
+                                                  <div className="flex gap-1 shrink-0">
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="icon"
+                                                      className="h-6 w-6"
+                                                      onClick={() => {
+                                                        setEditRec(rec);
+                                                        setRecForm({
+                                                          title: rec.title,
+                                                          description: rec.description,
+                                                          severity: rec.severity,
+                                                          howToFix: rec.howToFix,
+                                                          technique: rec.technique ?? "",
+                                                          referenceUrl: rec.referenceUrl ?? "",
+                                                          codeSnippet: rec.codeSnippet ?? "",
+                                                        });
+                                                        setRecFormError("");
+                                                        setAddRecOpen(tc._id);
+                                                      }}
+                                                      aria-label="Edit recommendation"
+                                                    >
+                                                      <Pencil className="h-3 w-3" />
+                                                    </Button>
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="icon"
+                                                      className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                                                      onClick={() => setDeleteRecTarget({ tcId: tc._id, recId: rec._id })}
+                                                      aria-label="Delete recommendation"
+                                                    >
+                                                      <Trash2 className="h-3 w-3" />
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">{rec.description}</p>
+                                                <div className="space-y-1">
+                                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">How to Fix</p>
+                                                  <p className="text-xs whitespace-pre-wrap">{rec.howToFix}</p>
+                                                </div>
+                                                {rec.technique && (
+                                                  <div>
+                                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Technique</p>
+                                                    <p className="text-xs whitespace-pre-wrap">{rec.technique}</p>
+                                                  </div>
+                                                )}
+                                                {rec.referenceUrl && (
+                                                  <a
+                                                    href={rec.referenceUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-xs text-blue-600 hover:underline block truncate"
+                                                  >
+                                                    {rec.referenceUrl}
+                                                  </a>
+                                                )}
+                                                {rec.codeSnippet && (
+                                                  <pre className="text-xs bg-muted rounded p-2 overflow-x-auto whitespace-pre-wrap">
+                                                    <code>{rec.codeSnippet}</code>
+                                                  </pre>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   )}
                                 </div>
@@ -1682,6 +1902,140 @@ export default function AdminProjectDetailPage() {
                     </SheetFooter>
                   </SheetContent>
                 </Sheet>
+
+                {/* Add / Edit Recommendation Sheet */}
+                <Sheet open={!!addRecOpen} onOpenChange={(open) => { if (!open) { setAddRecOpen(null); setEditRec(null); setRecFormError(""); } }}>
+                  <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+                    <SheetHeader className="mb-4">
+                      <SheetTitle>{editRec ? "Edit Recommendation" : "Add Recommendation"}</SheetTitle>
+                    </SheetHeader>
+
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <Label htmlFor="rec-title">Title *</Label>
+                        <Input
+                          id="rec-title"
+                          placeholder="Recommendation title"
+                          value={recForm.title}
+                          onChange={(e) => setRecForm((f) => ({ ...f, title: e.target.value }))}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="rec-desc">Description *</Label>
+                        <Textarea
+                          id="rec-desc"
+                          placeholder="Describe the issue or vulnerability"
+                          value={recForm.description}
+                          onChange={(e) => setRecForm((f) => ({ ...f, description: e.target.value }))}
+                          rows={3}
+                          className="resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="rec-severity">Severity</Label>
+                        <Select
+                          value={recForm.severity}
+                          onValueChange={(v) => setRecForm((f) => ({ ...f, severity: v as RecFormState["severity"] }))}
+                        >
+                          <SelectTrigger id="rec-severity"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="critical">Critical</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="rec-howtofix">How to Fix *</Label>
+                        <Textarea
+                          id="rec-howtofix"
+                          placeholder="Step-by-step instructions to fix the issue"
+                          value={recForm.howToFix}
+                          onChange={(e) => setRecForm((f) => ({ ...f, howToFix: e.target.value }))}
+                          rows={4}
+                          className="resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="rec-technique">Technique / WCAG Criterion (optional)</Label>
+                        <Input
+                          id="rec-technique"
+                          placeholder="e.g., WCAG 2.1 SC 1.1.1"
+                          value={recForm.technique}
+                          onChange={(e) => setRecForm((f) => ({ ...f, technique: e.target.value }))}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="rec-refurl">Reference URL (optional)</Label>
+                        <Input
+                          id="rec-refurl"
+                          type="url"
+                          placeholder="https://..."
+                          value={recForm.referenceUrl}
+                          onChange={(e) => setRecForm((f) => ({ ...f, referenceUrl: e.target.value }))}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="rec-code">Code Snippet (optional)</Label>
+                        <Textarea
+                          id="rec-code"
+                          placeholder="Corrected code example"
+                          value={recForm.codeSnippet}
+                          onChange={(e) => setRecForm((f) => ({ ...f, codeSnippet: e.target.value }))}
+                          rows={4}
+                          className="resize-none font-mono text-xs"
+                        />
+                      </div>
+
+                      {recFormError && (
+                        <p className="text-sm text-destructive">{recFormError}</p>
+                      )}
+                    </div>
+
+                    <SheetFooter className="mt-6">
+                      <Button variant="outline" onClick={() => { setAddRecOpen(null); setEditRec(null); setRecFormError(""); }}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => { if (addRecOpen) handleSubmitRec(addRecOpen); }}
+                        disabled={submittingRec}
+                        className="gap-2"
+                      >
+                        {submittingRec && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {editRec ? "Save Changes" : "Add Recommendation"}
+                      </Button>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
+
+                {/* Delete Recommendation AlertDialog */}
+                <AlertDialog open={!!deleteRecTarget} onOpenChange={(open) => { if (!open) setDeleteRecTarget(null); }}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Recommendation</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete this recommendation. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive hover:bg-destructive/90"
+                        onClick={() => { if (deleteRecTarget) handleDeleteRec(deleteRecTarget.tcId, deleteRecTarget.recId); }}
+                        disabled={deletingRec}
+                      >
+                        {deletingRec ? "Deleting…" : "Delete"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </TabsContent>
 
               {/* ─── Timeline Tab ─────────────────────────────────────────── */}

@@ -8,7 +8,7 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -28,6 +28,7 @@ import {
   Clock,
   Send,
   FolderOpen,
+  Lightbulb,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -96,6 +97,29 @@ type ScenarioWithSummary = {
   resultSummary: ResultSummary
 }
 
+type IRecommendationRead = {
+  _id: string
+  title: string
+  description: string
+  severity: "critical" | "high" | "medium" | "low"
+  howToFix: string
+  technique?: string
+  referenceUrl?: string
+  codeSnippet?: string
+}
+
+type TestCaseWithRecs = {
+  _id: string
+  title: string
+  recommendations: IRecommendationRead[]
+}
+
+type ScenarioWithRecs = {
+  scenarioId: string
+  scenarioTitle: string
+  testCases: TestCaseWithRecs[]
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STATUS_STEPS: ProjectStatus[] = ["pending", "open", "in_review", "scheduled", "completed"]
@@ -154,6 +178,16 @@ function computeProgress(testers: AssignedTester[], status: ProjectStatus): numb
   if (working.length === 0) return 0
   const sum = working.reduce((acc, t) => acc + (t.progressPercent ?? 0), 0)
   return Math.round(sum / active.length)
+}
+
+function getSeverityClass(severity: string): string {
+  switch (severity) {
+    case "critical": return "bg-red-100 text-red-800"
+    case "high": return "bg-orange-100 text-orange-800"
+    case "medium": return "bg-yellow-100 text-yellow-800"
+    case "low": return "bg-blue-100 text-blue-800"
+    default: return "bg-gray-100 text-gray-600"
+  }
 }
 
 function formatDate(iso: string | undefined): string {
@@ -347,6 +381,10 @@ export default function CustomerProjectDetailPage() {
 
   const [detailsOpen, setDetailsOpen] = useState(false)
 
+  const [scenariosWithRecs, setScenariosWithRecs] = useState<ScenarioWithRecs[]>([])
+  const [loadingRecs, setLoadingRecs] = useState(false)
+  const [expandedRecScenario, setExpandedRecScenario] = useState<string | null>(null)
+
   const commentInputRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch project
@@ -400,6 +438,46 @@ export default function CustomerProjectDetailPage() {
     load()
     return () => { cancelled = true }
   }, [id])
+
+  // Fetch recommendations after scenarios load
+  useEffect(() => {
+    if (!id || scenarios.length === 0) return
+    let cancelled = false
+
+    async function load() {
+      setLoadingRecs(true)
+      try {
+        const results = await Promise.all(
+          scenarios.map(async (s) => {
+            const res = await fetch(
+              `/api/admin/audit-requests/${id}/scenarios/${s._id}/test-cases`,
+              { cache: "no-store" }
+            )
+            if (!res.ok) return null
+            const json = await res.json()
+            const tcs: { _id: string; title: string; recommendations?: IRecommendationRead[] }[] =
+              Array.isArray(json.data) ? json.data : []
+            const testCases: TestCaseWithRecs[] = tcs
+              .filter((tc) => (tc.recommendations?.length ?? 0) > 0)
+              .map((tc) => ({ _id: tc._id, title: tc.title, recommendations: tc.recommendations ?? [] }))
+            return testCases.length > 0
+              ? { scenarioId: s._id, scenarioTitle: s.title, testCases }
+              : null
+          })
+        )
+        if (!cancelled) {
+          setScenariosWithRecs(results.filter(Boolean) as ScenarioWithRecs[])
+        }
+      } catch {
+        // Silently fail — recommendations are supplementary
+      } finally {
+        if (!cancelled) setLoadingRecs(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [id, scenarios])
 
   async function handlePostComment() {
     if (!commentText.trim()) return
@@ -641,6 +719,121 @@ export default function CustomerProjectDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* ── Section 4.5: Expert Recommendations ──────────────────────── */}
+            {(loadingRecs || scenariosWithRecs.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4 text-primary" aria-hidden="true" />
+                    <CardTitle className="text-base">Expert Recommendations</CardTitle>
+                  </div>
+                  {scenariosWithRecs.length > 0 && (
+                    <CardDescription>
+                      {scenariosWithRecs.reduce((sum, s) =>
+                        sum + s.testCases.reduce((tSum, tc) => tSum + tc.recommendations.length, 0), 0
+                      )} recommendation(s) across {scenariosWithRecs.length} scenario(s)
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {loadingRecs ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : (
+                    scenariosWithRecs.map((s) => {
+                      const isOpen = expandedRecScenario === s.scenarioId
+                      const totalRecs = s.testCases.reduce((sum, tc) => sum + tc.recommendations.length, 0)
+                      const critCount = s.testCases.flatMap((tc) => tc.recommendations).filter((r) => r.severity === "critical").length
+                      const highCount = s.testCases.flatMap((tc) => tc.recommendations).filter((r) => r.severity === "high").length
+
+                      return (
+                        <div key={s.scenarioId} className="border border-border rounded-lg overflow-hidden">
+                          <button
+                            type="button"
+                            className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50 transition-colors"
+                            onClick={() => setExpandedRecScenario(isOpen ? null : s.scenarioId)}
+                            aria-expanded={isOpen}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground truncate">{s.scenarioTitle}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {totalRecs} recommendation{totalRecs !== 1 ? "s" : ""}
+                                {critCount > 0 && (
+                                  <span className="ml-2 text-red-700 font-medium">{critCount} critical</span>
+                                )}
+                                {highCount > 0 && (
+                                  <span className="ml-2 text-orange-700 font-medium">{highCount} high</span>
+                                )}
+                              </p>
+                            </div>
+                            {isOpen ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-3" aria-hidden="true" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-3" aria-hidden="true" />
+                            )}
+                          </button>
+
+                          {isOpen && (
+                            <div className="border-t border-border bg-muted/20 px-4 pb-4 pt-2 space-y-4">
+                              {s.testCases.map((tc) => (
+                                <div key={tc._id}>
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                                    {tc.title}
+                                  </p>
+                                  <div className="space-y-3">
+                                    {tc.recommendations.map((rec) => (
+                                      <div key={rec._id} className="bg-background border border-border rounded-lg p-3 space-y-2">
+                                        <div className="flex items-start gap-2 flex-wrap">
+                                          <span className="text-sm font-medium text-foreground flex-1">{rec.title}</span>
+                                          <Badge className={cn("text-xs flex-shrink-0", getSeverityClass(rec.severity))}>
+                                            {rec.severity}
+                                          </Badge>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">{rec.description}</p>
+                                        <div>
+                                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                                            How to Fix
+                                          </p>
+                                          <p className="text-sm text-foreground whitespace-pre-wrap">{rec.howToFix}</p>
+                                        </div>
+                                        {rec.technique && (
+                                          <p className="text-xs text-muted-foreground">
+                                            <span className="font-semibold">Technique:</span> {rec.technique}
+                                          </p>
+                                        )}
+                                        {rec.referenceUrl && (
+                                          <a
+                                            href={rec.referenceUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-primary hover:underline flex items-center gap-1 truncate"
+                                          >
+                                            <ExternalLink className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+                                            <span className="truncate">{rec.referenceUrl}</span>
+                                          </a>
+                                        )}
+                                        {rec.codeSnippet && (
+                                          <pre className="text-xs bg-muted rounded p-2 overflow-x-auto whitespace-pre-wrap">
+                                            <code>{rec.codeSnippet}</code>
+                                          </pre>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* ── Section 5: Comments ───────────────────────────────────────── */}
             <Card>
