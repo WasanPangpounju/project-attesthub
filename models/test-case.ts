@@ -14,6 +14,7 @@ export interface ITesterResult {
     size: number;
     type: string;
     url?: string;
+    publicId?: string;
     uploadedAt: Date;
   }[];
   testedAt?: Date;
@@ -48,6 +49,7 @@ const ResultAttachmentSchema = new Schema(
     size: { type: Number, required: true },
     type: { type: String, required: true },
     url: { type: String },
+    publicId: { type: String },
     uploadedAt: { type: Date, default: Date.now },
   },
   { _id: true }

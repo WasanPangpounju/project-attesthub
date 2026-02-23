@@ -139,7 +139,7 @@ interface TesterResult {
   testerId: string;
   status: "pending" | "pass" | "fail" | "skip";
   note?: string;
-  attachments: { name: string; size: number; type: string; url?: string }[];
+  attachments: { name: string; size: number; type: string; url?: string; publicId?: string }[];
   testedAt?: string;
 }
 
@@ -1345,6 +1345,74 @@ export default function AdminProjectDetailPage() {
                                         </p>
                                         <p className="whitespace-pre-wrap">{tc.expectedResult}</p>
                                       </div>
+
+                                      {tc.results.length > 0 && (
+                                        <div>
+                                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                                            Tester Results
+                                          </p>
+                                          <div className="space-y-3">
+                                            {tc.results.map((result, rIdx) => {
+                                              const testerInfo = testerMap[result.testerId]
+                                              const testerName = testerInfo
+                                                ? `${testerInfo.firstName ?? ""} ${testerInfo.lastName ?? ""}`.trim() || testerInfo.email || result.testerId
+                                                : result.testerId
+
+                                              return (
+                                                <div key={rIdx} className="border rounded-lg p-3 space-y-2">
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-xs font-medium">{testerName}</span>
+                                                    <Badge className={cn("text-xs", {
+                                                      "bg-green-100 text-green-700": result.status === "pass",
+                                                      "bg-red-100 text-red-700": result.status === "fail",
+                                                      "bg-yellow-100 text-yellow-700": result.status === "skip",
+                                                      "bg-gray-100 text-gray-600": result.status === "pending",
+                                                    })}>
+                                                      {result.status}
+                                                    </Badge>
+                                                    {result.testedAt && (
+                                                      <span className="text-xs text-muted-foreground">{fmtDate(result.testedAt)}</span>
+                                                    )}
+                                                  </div>
+
+                                                  {result.note && (
+                                                    <p className="text-xs text-muted-foreground italic">{result.note}</p>
+                                                  )}
+
+                                                  {(result.attachments ?? []).length > 0 && (
+                                                    <div className="space-y-1.5">
+                                                      {result.attachments.map((att, aIdx) => {
+                                                        const isImage = att.type?.startsWith("image/")
+                                                        const isVideo = att.type?.startsWith("video/")
+                                                        return (
+                                                          <div key={aIdx} className="border rounded overflow-hidden">
+                                                            {isImage && att.url && (
+                                                              <a href={att.url} target="_blank" rel="noopener noreferrer">
+                                                                <img src={att.url} alt={att.name} className="w-full max-h-40 object-cover" loading="lazy" />
+                                                              </a>
+                                                            )}
+                                                            {isVideo && att.url && (
+                                                              <video src={att.url} controls className="w-full max-h-40" preload="metadata" />
+                                                            )}
+                                                            <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/30 text-xs">
+                                                              <span className="flex-1 truncate">{att.name}</span>
+                                                              {att.url && (
+                                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline shrink-0">
+                                                                  Open
+                                                                </a>
+                                                              )}
+                                                            </div>
+                                                          </div>
+                                                        )
+                                                      })}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )
+                                            })}
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>

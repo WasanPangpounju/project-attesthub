@@ -84,7 +84,7 @@ interface TesterResult {
   testerId: string
   status: "pending" | "pass" | "fail" | "skip"
   note?: string
-  attachments: { _id?: string; name: string; size: number; type: string; url?: string; uploadedAt: string }[]
+  attachments: { _id?: string; name: string; size: number; type: string; url?: string; publicId?: string; uploadedAt: string }[]
   testedAt?: string
 }
 
@@ -496,6 +496,9 @@ export default function TesterDashboardPage() {
   const [expandedTestCase, setExpandedTestCase] = useState<string | null>(null)
   const [submittingResult, setSubmittingResult] = useState<string | null>(null)
   const [resultNotes, setResultNotes] = useState<Record<string, string>>({})
+  const [uploadingTC, setUploadingTC] = useState<string | null>(null)
+  const tcFileInputRef = useRef<HTMLInputElement>(null)
+  const [tcFileInputTarget, setTCFileInputTarget] = useState<{ taskId: string; scenarioId: string; tcId: string } | null>(null)
 
   // Cleanup debounce on unmount
   useEffect(() => {
@@ -708,6 +711,75 @@ export default function TesterDashboardPage() {
       toast.error(e instanceof Error ? e.message : "Failed to submit result")
     } finally {
       setSubmittingResult(null)
+    }
+  }
+
+  async function handleTCFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !tcFileInputTarget) return
+
+    const { taskId, scenarioId, tcId } = tcFileInputTarget
+    setUploadingTC(tcId)
+
+    try {
+      // 1. Upload to Cloudinary via /api/upload
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("folder", "attesthub/test-results")
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+      if (!uploadRes.ok) {
+        const d = await uploadRes.json().catch(() => ({}))
+        throw new Error((d as { error?: string })?.error || "Upload failed")
+      }
+      const { data: uploadData } = await uploadRes.json() as {
+        data: { url: string; publicId: string; resourceType: string; format: string; bytes: number }
+      }
+
+      // 2. Save attachment metadata to MongoDB
+      const attachRes = await fetch(
+        `/api/tester/tasks/${taskId}/scenarios/${scenarioId}/test-cases/${tcId}/attachments`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            url: uploadData.url,
+            publicId: uploadData.publicId,
+          }),
+        }
+      )
+      if (!attachRes.ok) throw new Error("Failed to save attachment")
+
+      const { data: savedResult } = await attachRes.json() as { data: TesterResult }
+
+      // 3. Update local state
+      setScenarios((prev) =>
+        prev.map((sc) =>
+          sc._id !== scenarioId ? sc : {
+            ...sc,
+            testCases: sc.testCases.map((tc) =>
+              tc._id !== tcId ? tc : {
+                ...tc,
+                myResult: savedResult,
+              }
+            ),
+          }
+        )
+      )
+      toast.success("File uploaded")
+    } catch (e) {
+      console.error("TC file upload error:", e)
+      toast.error(e instanceof Error ? e.message : "Upload failed")
+    } finally {
+      setUploadingTC(null)
+      setTCFileInputTarget(null)
+      if (tcFileInputRef.current) tcFileInputRef.current.value = ""
     }
   }
 
@@ -1242,6 +1314,86 @@ export default function TesterDashboardPage() {
                                                       Skip
                                                     </Button>
                                                   </div>
+
+                                                  {/* Attachments */}
+                                                  <div className="space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                                        Attachments ({tc.myResult.attachments?.length ?? 0})
+                                                      </p>
+                                                      <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="gap-1.5 h-7 text-xs"
+                                                        disabled={uploadingTC === tc._id}
+                                                        onClick={() => {
+                                                          setTCFileInputTarget({
+                                                            taskId: selectedTask!._id,
+                                                            scenarioId: scenario._id,
+                                                            tcId: tc._id,
+                                                          })
+                                                          tcFileInputRef.current?.click()
+                                                        }}
+                                                        aria-label="Upload attachment"
+                                                      >
+                                                        {uploadingTC === tc._id ? (
+                                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                                        ) : (
+                                                          <Upload className="h-3 w-3" />
+                                                        )}
+                                                        {uploadingTC === tc._id ? "Uploading…" : "Upload"}
+                                                      </Button>
+                                                    </div>
+
+                                                    {(tc.myResult.attachments ?? []).length > 0 && (
+                                                      <div className="space-y-1.5">
+                                                        {tc.myResult.attachments.map((att, idx) => {
+                                                          const isImage = att.type?.startsWith("image/")
+                                                          const isVideo = att.type?.startsWith("video/")
+
+                                                          return (
+                                                            <div key={att._id ?? idx} className="border rounded-lg overflow-hidden">
+                                                              {isImage && att.url && (
+                                                                <a href={att.url} target="_blank" rel="noopener noreferrer">
+                                                                  <img
+                                                                    src={att.url}
+                                                                    alt={att.name}
+                                                                    className="w-full max-h-48 object-cover"
+                                                                    loading="lazy"
+                                                                  />
+                                                                </a>
+                                                              )}
+                                                              {isVideo && att.url && (
+                                                                <video
+                                                                  src={att.url}
+                                                                  controls
+                                                                  className="w-full max-h-48"
+                                                                  preload="metadata"
+                                                                />
+                                                              )}
+                                                              <div className="flex items-center gap-2 px-3 py-2 bg-muted/30">
+                                                                <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
+                                                                <div className="flex-1 min-w-0">
+                                                                  <p className="text-xs font-medium truncate">{att.name}</p>
+                                                                  <p className="text-xs text-muted-foreground">{formatFileSize(att.size)}</p>
+                                                                </div>
+                                                                {att.url && (
+                                                                  <a
+                                                                    href={att.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-xs text-blue-600 hover:underline shrink-0"
+                                                                  >
+                                                                    Open
+                                                                  </a>
+                                                                )}
+                                                              </div>
+                                                            </div>
+                                                          )
+                                                        })}
+                                                      </div>
+                                                    )}
+                                                  </div>
                                                 </div>
                                               )}
                                             </div>
@@ -1314,6 +1466,14 @@ export default function TesterDashboardPage() {
           )}
         </SheetContent>
       </Sheet>
+      <input
+        ref={tcFileInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*,video/*,.pdf"
+        onChange={handleTCFileUpload}
+        aria-hidden="true"
+      />
     </DashboardLayout>
   )
 }

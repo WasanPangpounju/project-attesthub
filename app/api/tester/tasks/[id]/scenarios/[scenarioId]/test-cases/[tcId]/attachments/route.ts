@@ -26,8 +26,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     if (!tester) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { scenarioId, tcId } = await params;
-    const body = (await req.json()) as { name?: string; size?: number; type?: string };
-    const { name, size, type } = body;
+    const body = (await req.json()) as { name?: string; size?: number; type?: string; url?: string; publicId?: string };
+    const { name, size, type, url, publicId } = body;
 
     if (!name || size === undefined || !type)
       return NextResponse.json(
@@ -60,6 +60,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       name,
       size,
       type,
+      url,
+      publicId,
       uploadedAt: new Date(),
     });
 
