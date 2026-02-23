@@ -565,11 +565,20 @@ export default function TesterDashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: file.name, size: file.size, type: file.type }),
       })
-      if (!res.ok) throw new Error("Failed to save attachment")
-      const { data } = await res.json() as { data: Attachment }
-      setDrawerAttachments((prev) => [...prev, data])
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error((d as { error?: string })?.error || `Request failed (${res.status})`)
+      }
+      const json = await res.json() as { data: Attachment | Attachment[] }
+      const returned = json.data
+      if (Array.isArray(returned)) {
+        setDrawerAttachments(returned)
+      } else {
+        setDrawerAttachments((prev) => [...prev, returned])
+      }
       toast.success("Attachment added")
     } catch (e) {
+      console.error("Attachment upload error:", e)
       toast.error(e instanceof Error ? e.message : "Failed to add attachment")
     } finally {
       setSubmittingAttachment(false)
@@ -751,15 +760,28 @@ export default function TesterDashboardPage() {
                         <p className="text-sm font-medium">Progress</p>
                         <span className="text-sm font-semibold tabular-nums">{progressValue}%</span>
                       </div>
-                      <Slider
-                        value={[progressValue]}
-                        onValueChange={([v]) => onProgressChange(v)}
-                        min={0}
-                        max={100}
-                        step={5}
-                        disabled={selectedTask.myTesterEntry?.workStatus !== "working"}
-                        aria-label="Task progress percentage"
-                      />
+                      {selectedTask.myTesterEntry?.workStatus === "done" ? (
+                        <div className="space-y-2">
+                          <Progress
+                            value={progressValue}
+                            className="h-3"
+                            aria-label={`Completed at ${progressValue}%`}
+                          />
+                          <p className="text-xs text-muted-foreground text-center">
+                            Completed at {progressValue}%
+                          </p>
+                        </div>
+                      ) : (
+                        <Slider
+                          value={[progressValue]}
+                          onValueChange={([v]) => onProgressChange(v)}
+                          min={0}
+                          max={100}
+                          step={5}
+                          disabled={selectedTask.myTesterEntry?.workStatus !== "working"}
+                          aria-label="Task progress percentage"
+                        />
+                      )}
                       <div className="mt-1.5 h-5 flex items-center">
                         {savingProgress && (
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -771,7 +793,8 @@ export default function TesterDashboardPage() {
                             <CheckCircle className="h-3 w-3" aria-hidden="true" /> Saved
                           </span>
                         )}
-                        {selectedTask.myTesterEntry?.workStatus !== "working" && (
+                        {(selectedTask.myTesterEntry?.workStatus === "assigned" ||
+                          selectedTask.myTesterEntry?.workStatus === "accepted") && (
                           <span className="text-xs text-muted-foreground">
                             Start working to update progress
                           </span>
