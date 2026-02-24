@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -29,6 +30,12 @@ import {
   Send,
   FolderOpen,
   Lightbulb,
+  FileText,
+  Loader2,
+  UserPlus,
+  X,
+  Share2,
+  Copy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -77,6 +84,7 @@ type AuditRequest = {
   priceCurrency: "THB" | "USD"
   priority?: string
   dueDate?: string
+  shareToken?: string
   createdAt: string
 }
 
@@ -385,6 +393,14 @@ export default function CustomerProjectDetailPage() {
   const [loadingRecs, setLoadingRecs] = useState(false)
   const [expandedRecScenario, setExpandedRecScenario] = useState<string | null>(null)
 
+  // Org members
+  const [members, setMembers] = useState<{ clerkUserId: string; email: string; firstName?: string; lastName?: string }[]>([])
+  const [memberEmail, setMemberEmail] = useState("")
+  const [addingMember, setAddingMember] = useState(false)
+
+  // Share token
+  const [generatingShare, setGeneratingShare] = useState(false)
+
   const commentInputRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch project
@@ -404,6 +420,12 @@ export default function CustomerProjectDetailPage() {
         if (!cancelled && json.data) {
           setProject(json.data)
           setComments(json.data.comments ?? [])
+        }
+        // Fetch members alongside project
+        const membersRes = await fetch(`/api/customer/projects/${id}/members`, { cache: "no-store" })
+        if (membersRes.ok) {
+          const { data: membersData } = await membersRes.json()
+          if (!cancelled) setMembers(membersData ?? [])
         }
       } catch (e: unknown) {
         if (!cancelled) setProjectError(e instanceof Error ? e.message : "Failed to load project")
@@ -478,6 +500,61 @@ export default function CustomerProjectDetailPage() {
     load()
     return () => { cancelled = true }
   }, [id, scenarios])
+
+  async function handleAddMember() {
+    if (!memberEmail.trim()) return
+    setAddingMember(true)
+    try {
+      const res = await fetch(`/api/customer/projects/${id}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: memberEmail.trim() }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(d?.error || "Failed to add member")
+      }
+      const { data } = await res.json()
+      setMembers(data)
+      setMemberEmail("")
+      toast.success("Member added")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to add member")
+    } finally {
+      setAddingMember(false)
+    }
+  }
+
+  async function handleRemoveMember(memberId: string) {
+    try {
+      const res = await fetch(`/api/customer/projects/${id}/members/${memberId}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to remove member")
+      setMembers((prev) => prev.filter((m) => m.clerkUserId !== memberId))
+      toast.success("Member removed")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove member")
+    }
+  }
+
+  async function handleGenerateShareLink() {
+    setGeneratingShare(true)
+    try {
+      const res = await fetch(`/api/reports/${id}/share`, { method: "POST" })
+      if (!res.ok) throw new Error("Failed")
+      const { data } = await res.json()
+      setProject((prev) => prev ? { ...prev, shareToken: data.token } : prev)
+      toast.success("Share link generated!")
+    } catch { toast.error("Failed to generate share link") }
+    finally { setGeneratingShare(false) }
+  }
+
+  async function handleRevokeShareLink() {
+    try {
+      await fetch(`/api/reports/${id}/share`, { method: "DELETE" })
+      setProject((prev) => prev ? { ...prev, shareToken: undefined } : prev)
+      toast.success("Share link revoked")
+    } catch { toast.error("Failed to revoke") }
+  }
 
   async function handlePostComment() {
     if (!commentText.trim()) return
@@ -566,13 +643,73 @@ export default function CustomerProjectDetailPage() {
         <div className="flex-1 flex flex-col">
           <DashboardHeader />
           <main className="flex-1 p-6 lg:p-8 space-y-6 max-w-5xl">
-            {/* Back link */}
-            <Button variant="ghost" size="sm" className="gap-2 -ml-2" asChild>
-              <Link href="/dashboard/customer">
-                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                Back to projects
-              </Link>
-            </Button>
+            {/* Back link + report buttons */}
+            <div className="flex items-center justify-between gap-4">
+              <Button variant="ghost" size="sm" className="gap-2 -ml-2" asChild>
+                <Link href="/dashboard/customer">
+                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  Back to projects
+                </Link>
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/dashboard/reports/${id}/summary`}>
+                    <FileText className="h-4 w-4 mr-1" /> View Full Report
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/dashboard/reports/${id}/wcag`}>
+                    WCAG Report
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Share Report */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {project.shareToken ? (
+                <>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground mb-1">Shareable link (no login required)</p>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-muted rounded px-2 py-1 flex-1 truncate">
+                        {typeof window !== "undefined" ? `${window.location.origin}/reports/shared/${project.shareToken}` : `/reports/shared/${project.shareToken}`}
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 shrink-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/reports/shared/${project.shareToken}`)
+                          toast.success("Link copied!")
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive hover:bg-destructive/10 shrink-0"
+                    onClick={handleRevokeShareLink}
+                  >
+                    Revoke
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleGenerateShareLink}
+                  disabled={generatingShare}
+                  className="gap-2"
+                >
+                  {generatingShare ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                  Generate Share Link
+                </Button>
+              )}
+            </div>
 
             {/* ── Section 1: Project Header ─────────────────────────────────── */}
             <Card>
@@ -885,6 +1022,72 @@ export default function CustomerProjectDetailPage() {
                     </Button>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* ── Section 5.5: Team Access ──────────────────────────────────── */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Team Access
+                </CardTitle>
+                <CardDescription>
+                  Add team members from your organization who can view this project and its reports
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Add member form */}
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="colleague@company.com"
+                    value={memberEmail}
+                    onChange={(e) => setMemberEmail(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddMember() }}
+                  />
+                  <Button onClick={handleAddMember} disabled={addingMember} className="gap-2 shrink-0">
+                    {addingMember ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                    Add
+                  </Button>
+                </div>
+
+                {/* Member list */}
+                {members.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No additional members yet.</p>
+                ) : (
+                  <ul className="space-y-2" aria-label="Team members">
+                    {members.map((member) => (
+                      <li key={member.clerkUserId} className="flex items-center gap-3 py-2 border-b last:border-0">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-xs">
+                            {(member.firstName?.[0] ?? member.email[0] ?? "?").toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {member.firstName && member.lastName
+                              ? `${member.firstName} ${member.lastName}`
+                              : member.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                        </div>
+                        {member.clerkUserId === project.customerId ? (
+                          <Badge variant="secondary" className="text-xs">Owner</Badge>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                            onClick={() => handleRemoveMember(member.clerkUserId)}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </CardContent>
             </Card>
 

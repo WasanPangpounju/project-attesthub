@@ -95,6 +95,11 @@ export interface IAuditRequest {
   aiConfidence?: number;
   aiReportStatus?: "none" | "generated" | "validated" | "rejected";
 
+  // org members & share token
+  orgMembers: string[];        // additional Clerk userIds who can access this project
+  shareToken?: string;         // secure random token for public link
+  shareTokenExpiry?: Date;     // optional expiry
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -191,6 +196,10 @@ const AuditRequestSchema = new Schema<IAuditRequest>(
 
     aiConfidence: { type: Number, min: 0, max: 100 },
     aiReportStatus: { type: String, enum: ["none", "generated", "validated", "rejected"], default: "none" },
+
+    orgMembers: { type: [String], default: [] },
+    shareToken: { type: String, index: true, sparse: true },
+    shareTokenExpiry: { type: Date },
   },
   { timestamps: true }
 );

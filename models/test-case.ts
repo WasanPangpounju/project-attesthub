@@ -42,6 +42,7 @@ export interface ITestCase {
   steps: ITestStep[];
   expectedResult: string;
   priority: "low" | "medium" | "high" | "critical";
+  wcagCriteria?: string[];
   order: number;
   results: ITesterResult[];
   recommendations: IRecommendation[];
@@ -116,6 +117,7 @@ const TestCaseSchema = new Schema<ITestCase>(
       enum: ["low", "medium", "high", "critical"],
       default: "medium",
     },
+    wcagCriteria: { type: [String], default: [] },
     order: { type: Number, default: 0 },
     results: { type: [TesterResultSchema], default: [] },
     recommendations: { type: [RecommendationSchema], default: [] },

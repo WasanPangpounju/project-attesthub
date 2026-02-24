@@ -58,8 +58,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       expectedResult?: string;
       priority?: string;
       order?: number;
+      wcagCriteria?: string[];
     };
-    const { title, description, steps, expectedResult, priority, order } = body;
+    const { title, description, steps, expectedResult, priority, order, wcagCriteria } = body;
 
     if (!title) return NextResponse.json({ error: "title is required" }, { status: 400 });
     if (!expectedResult)
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       steps,
       expectedResult,
       priority: priority ?? "medium",
+      wcagCriteria: wcagCriteria ?? [],
       order: finalOrder,
       createdBy: userId as string,
     });

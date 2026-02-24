@@ -55,6 +55,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import EditProjectForm from "./edit-form";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { WCAG_CRITERIA } from "@/lib/wcag-criteria";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -152,6 +153,7 @@ interface TestCase {
   steps: TestStep[];
   expectedResult: string;
   priority: "low" | "medium" | "high" | "critical";
+  wcagCriteria?: string[];
   order: number;
   results: TesterResult[];
   recommendations: IRecommendationLocal[];
@@ -167,6 +169,7 @@ interface TCFormState {
   expectedResult: string;
   steps: TestStep[];
   order: string;
+  wcagCriteria: string[];
 }
 
 interface IRecommendationLocal {
@@ -213,7 +216,7 @@ const workStatusColors: Record<TesterWorkStatus, string> = {
 
 const DEFAULT_SCENARIO_FORM = { title: "", description: "", assignedTesterId: "", order: "" };
 const DEFAULT_TC_FORM: TCFormState = {
-  title: "", description: "", priority: "medium", expectedResult: "", steps: [], order: "",
+  title: "", description: "", priority: "medium", expectedResult: "", steps: [], order: "", wcagCriteria: [],
 };
 const DEFAULT_REC_FORM: RecFormState = {
   title: "", description: "", severity: "medium",
@@ -621,6 +624,7 @@ export default function AdminProjectDetailPage() {
       expectedResult: tc.expectedResult,
       steps: tc.steps.map((s) => ({ ...s })),
       order: String(tc.order),
+      wcagCriteria: tc.wcagCriteria ?? [],
     });
     setTCFormError("");
     setAddTCOpen(true);
@@ -672,6 +676,7 @@ export default function AdminProjectDetailPage() {
         priority: tcForm.priority,
         expectedResult: tcForm.expectedResult.trim(),
         steps: tcForm.steps,
+        wcagCriteria: tcForm.wcagCriteria,
       };
       if (tcForm.order !== "") body.order = Number(tcForm.order);
       const tcUrl = editTC
@@ -886,13 +891,25 @@ export default function AdminProjectDetailPage() {
                 <p className="text-sm text-muted-foreground mt-1">ID: {item._id}</p>
               </div>
             </div>
-            <Button
-              onClick={() => setEditMode(!editMode)}
-              className="gap-2"
-              variant={editMode ? "destructive" : "default"}
-            >
-              {editMode ? "Cancel" : <><Pencil className="h-4 w-4" /> Edit</>}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/dashboard/reports/${id}/summary`}>
+                  <FileText className="h-4 w-4 mr-1" /> Full Report
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/dashboard/reports/${id}/wcag`}>
+                  WCAG Report
+                </Link>
+              </Button>
+              <Button
+                onClick={() => setEditMode(!editMode)}
+                className="gap-2"
+                variant={editMode ? "destructive" : "default"}
+              >
+                {editMode ? "Cancel" : <><Pencil className="h-4 w-4" /> Edit</>}
+              </Button>
+            </div>
           </div>
 
           {/* Quick Stats */}
@@ -1817,6 +1834,42 @@ export default function AdminProjectDetailPage() {
                             onChange={(e) => setTCForm((f) => ({ ...f, order: e.target.value }))}
                           />
                         </div>
+                      </div>
+
+                      {/* WCAG Criteria */}
+                      <div className="space-y-1">
+                        <Label>WCAG Success Criteria</Label>
+                        <p className="text-xs text-muted-foreground">Select all criteria this test case covers</p>
+                        <div className="border rounded-lg max-h-48 overflow-y-auto p-2 space-y-0.5">
+                          {WCAG_CRITERIA.map((criterion) => (
+                            <label
+                              key={criterion.id}
+                              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
+                            >
+                              <input
+                                type="checkbox"
+                                className="h-3.5 w-3.5"
+                                checked={tcForm.wcagCriteria.includes(criterion.id)}
+                                onChange={(e) => {
+                                  setTCForm((f) => ({
+                                    ...f,
+                                    wcagCriteria: e.target.checked
+                                      ? [...f.wcagCriteria, criterion.id]
+                                      : f.wcagCriteria.filter((id) => id !== criterion.id),
+                                  }))
+                                }}
+                              />
+                              <span className="font-mono text-xs text-muted-foreground w-10 shrink-0">{criterion.id}</span>
+                              <span className="flex-1 truncate">{criterion.title}</span>
+                              <Badge variant="outline" className="text-xs shrink-0">{criterion.level}</Badge>
+                            </label>
+                          ))}
+                        </div>
+                        {tcForm.wcagCriteria.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {tcForm.wcagCriteria.length} criteria selected
+                          </p>
+                        )}
                       </div>
 
                       <div className="space-y-1">
