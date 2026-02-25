@@ -4,52 +4,61 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { FolderOpen, FileText, Menu, X, Shield, LogOut, UserCircle } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Menu, X, Shield, LogOut, UserCircle,
+  FolderOpen, FileText, ClipboardList, LayoutDashboard, Users,
+} from "lucide-react"
 import { UserButton, useUser, SignOutButton } from "@clerk/nextjs"
-import { Users } from "lucide-react"
 
-const navItems = [
-  {
-    title: "My Projects",
-    href: "/projects",
-    icon: FolderOpen,
-  },
-  {
-    title: "New Audit Request",
-    href: "/new-audit",
-    icon: FileText,
-  },
-  {
-    title: "My Profile",
-    href: "/dashboard/profile",
-    icon: UserCircle,
-  },
-]
-
-const adminNavItems = [
-  {
-    title: "Users",
-    href: "/dashboard/admin/users",
-    icon: Users,
-  },
-]
+type NavItem = {
+  title: string
+  href: string
+  icon: React.ElementType
+  badge?: number
+}
 
 export function DashboardSidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const { user } = useUser()
+  const [role, setRole] = useState<string | null>(null)
+  const [roleLoading, setRoleLoading] = useState(true)
   const [pendingProfileCount, setPendingProfileCount] = useState(0)
 
   useEffect(() => {
-    fetch("/api/admin/profile-change-requests?status=pending")
-      .then((r) => {
-        if (!r.ok) return null
-        return r.json()
-      })
+    fetch("/api/profile", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
-        if (json?.data) setPendingProfileCount(json.data.length ?? 0)
+        const fetchedRole = json?.data?.role ?? null
+        setRole(fetchedRole)
+        if (fetchedRole === "admin") {
+          fetch("/api/admin/profile-change-requests?status=pending")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((j) => setPendingProfileCount(j?.data?.length ?? 0))
+            .catch(() => {})
+        }
       })
       .catch(() => {})
+      .finally(() => setRoleLoading(false))
   }, [])
+
+  const navItems: NavItem[] = (() => {
+    if (role === "customer") return [
+      { title: "My Projects", href: "/dashboard/customer", icon: FolderOpen },
+      { title: "New Audit Request", href: "/dashboard/customer/new-project", icon: FileText },
+      { title: "My Profile", href: "/dashboard/profile", icon: UserCircle },
+    ]
+    if (role === "tester") return [
+      { title: "My Tasks", href: "/dashboard/tester", icon: ClipboardList },
+      { title: "My Profile", href: "/dashboard/profile", icon: UserCircle },
+    ]
+    if (role === "admin") return [
+      { title: "Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
+      { title: "Users", href: "/dashboard/admin/users", icon: Users, badge: pendingProfileCount },
+      { title: "My Profile", href: "/dashboard/profile", icon: UserCircle },
+    ]
+    return []
+  })()
 
   return (
     <>
@@ -88,61 +97,43 @@ export function DashboardSidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link key={item.href} href={item.href} onClick={() => setIsOpen(false)}>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground hover:bg-accent"
-                  >
-                    <Icon className="h-5 w-5" />
-                    {item.title}
-                  </Button>
-                </Link>
-              )
-            })}
-
-            {/* Admin section */}
-            <div className="pt-2">
-              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Admin
-              </p>
-              {adminNavItems.map((item) => {
+          <nav className="flex-1 p-4 space-y-1">
+            {roleLoading ? (
+              <>
+                <Skeleton className="h-9 w-full rounded-md" />
+                <Skeleton className="h-9 w-full rounded-md" />
+                <Skeleton className="h-9 w-full rounded-md" />
+              </>
+            ) : (
+              navItems.map((item) => {
                 const Icon = item.icon
-                const showBadge = item.href === "/dashboard/admin/users" && pendingProfileCount > 0
                 return (
                   <Link key={item.href} href={item.href} onClick={() => setIsOpen(false)}>
                     <Button
                       variant="ghost"
                       className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground hover:bg-accent"
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5 shrink-0" />
                       <span>{item.title}</span>
-                      {showBadge && (
+                      {item.badge != null && item.badge > 0 && (
                         <span className="ml-auto h-5 w-5 rounded-full bg-yellow-500 text-white text-xs flex items-center justify-center">
-                          {pendingProfileCount}
+                          {item.badge}
                         </span>
                       )}
                     </Button>
                   </Link>
                 )
-              })}
-            </div>
+              })
+            )}
           </nav>
 
-          {/* Footer: User Profile & Sign Out Section */}
+          {/* Footer */}
           <div className="p-4 border-t border-border bg-muted/30">
             <div className="flex items-center justify-between mb-4 px-2">
               <div className="flex items-center gap-3">
                 <UserButton
                   afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox: "h-9 w-9"
-                    }
-                  }}
+                  appearance={{ elements: { userButtonAvatarBox: "h-9 w-9" } }}
                 />
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-foreground leading-none">

@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
+import { RoleGuard } from "@/components/role-guard"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -187,44 +188,24 @@ export default function AdminUserProfilePage() {
     setAdminForm((prev) => ({ ...prev, adminProfile: { ...(prev.adminProfile ?? {}), [key]: value } }))
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen">
-        <DashboardSidebar />
-        <div className="flex-1 flex flex-col">
-          <DashboardHeader />
-          <main className="flex-1 p-6 lg:p-8 max-w-4xl space-y-6">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-48 w-full" />
-          </main>
-        </div>
-      </div>
-    )
-  }
+  const { user, pendingRequest } = profileData ?? {}
 
-  if (!profileData) {
-    return (
+  return (
+    <RoleGuard allowedRoles={["admin"]}>
       <div className="flex min-h-screen">
         <DashboardSidebar />
         <div className="flex-1 flex flex-col">
           <DashboardHeader />
           <main className="flex-1 p-6 lg:p-8">
-            <p className="text-muted-foreground">User not found.</p>
-          </main>
-        </div>
-      </div>
-    )
-  }
-
-  const { user, pendingRequest } = profileData
-
-  return (
-    <div className="flex min-h-screen">
-      <DashboardSidebar />
-      <div className="flex-1 flex flex-col">
-        <DashboardHeader />
-        <main className="flex-1 p-6 lg:p-8">
+            {loading ? (
+              <div className="max-w-4xl space-y-6">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-48 w-full" />
+              </div>
+            ) : !profileData ? (
+              <p className="text-muted-foreground">User not found.</p>
+            ) : (
           <div className="max-w-4xl space-y-6">
 
             {/* Back + header actions */}
@@ -553,9 +534,11 @@ export default function AdminUserProfilePage() {
               </Card>
             )}
 
-          </div>
-        </main>
+            </div>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </RoleGuard>
   )
 }
