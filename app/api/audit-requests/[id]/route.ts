@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import AuditRequest from "@/models/audit-request"
+import User from "@/models/User"
 import { Types } from "mongoose"
 
 export const runtime = "nodejs"
@@ -21,9 +22,17 @@ export async function GET(
       return NextResponse.json({ error: "Invalid project ID" }, { status: 400 })
     }
 
-    const request = await AuditRequest.findById(id).lean()
+    const [request, user] = await Promise.all([
+      AuditRequest.findById(id).lean(),
+      User.findOne({ clerkUserId: userId }).lean(),
+    ])
     if (!request) return NextResponse.json({ error: "Project not found" }, { status: 404 })
-    if (request.customerId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+    const hasAccess =
+      user?.role === "admin" ||
+      request.customerId === userId ||
+      (request.orgMembers ?? []).includes(userId)
+    if (!hasAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     return NextResponse.json({ data: request }, { status: 200 })
   } catch (err) {
