@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { FolderOpen, FileText, Menu, X, Shield, LogOut } from "lucide-react"
-// 1. Import Clerk Components
+import { FolderOpen, FileText, Menu, X, Shield, LogOut, UserCircle } from "lucide-react"
 import { UserButton, useUser, SignOutButton } from "@clerk/nextjs"
 import { Users } from "lucide-react"
 
@@ -20,7 +19,11 @@ const navItems = [
     href: "/new-audit",
     icon: FileText,
   },
-  // ลบ Profile ออกจากรายการด้านบน เพราะจะเอาไปไว้ด้านล่างแทน
+  {
+    title: "My Profile",
+    href: "/dashboard/profile",
+    icon: UserCircle,
+  },
 ]
 
 const adminNavItems = [
@@ -33,8 +36,20 @@ const adminNavItems = [
 
 export function DashboardSidebar() {
   const [isOpen, setIsOpen] = useState(false)
-  // 2. ดึงข้อมูล User มาแสดงผล
-  const { user } = useUser();
+  const { user } = useUser()
+  const [pendingProfileCount, setPendingProfileCount] = useState(0)
+
+  useEffect(() => {
+    fetch("/api/admin/profile-change-requests?status=pending")
+      .then((r) => {
+        if (!r.ok) return null
+        return r.json()
+      })
+      .then((json) => {
+        if (json?.data) setPendingProfileCount(json.data.length ?? 0)
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <>
@@ -96,6 +111,7 @@ export function DashboardSidebar() {
               </p>
               {adminNavItems.map((item) => {
                 const Icon = item.icon
+                const showBadge = item.href === "/dashboard/admin/users" && pendingProfileCount > 0
                 return (
                   <Link key={item.href} href={item.href} onClick={() => setIsOpen(false)}>
                     <Button
@@ -103,7 +119,12 @@ export function DashboardSidebar() {
                       className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground hover:bg-accent"
                     >
                       <Icon className="h-5 w-5" />
-                      {item.title}
+                      <span>{item.title}</span>
+                      {showBadge && (
+                        <span className="ml-auto h-5 w-5 rounded-full bg-yellow-500 text-white text-xs flex items-center justify-center">
+                          {pendingProfileCount}
+                        </span>
+                      )}
                     </Button>
                   </Link>
                 )
@@ -111,13 +132,12 @@ export function DashboardSidebar() {
             </div>
           </nav>
 
-          {/* 3. Footer: User Profile & Sign Out Section */}
+          {/* Footer: User Profile & Sign Out Section */}
           <div className="p-4 border-t border-border bg-muted/30">
             <div className="flex items-center justify-between mb-4 px-2">
               <div className="flex items-center gap-3">
-                {/* ปุ่มจัดการ Profile ของ Clerk */}
-                <UserButton 
-                  afterSignOutUrl="/" 
+                <UserButton
+                  afterSignOutUrl="/"
                   appearance={{
                     elements: {
                       userButtonAvatarBox: "h-9 w-9"
@@ -135,17 +155,16 @@ export function DashboardSidebar() {
               </div>
             </div>
 
-            {/* ปุ่ม Logout แบบแยกออกมาให้เห็นชัดๆ */}
             <SignOutButton>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50"
               >
                 <LogOut className="h-5 w-5" />
                 Sign out
               </Button>
             </SignOutButton>
-            
+
             <p className="text-[10px] text-muted-foreground text-center mt-4 uppercase tracking-wider font-semibold">
               © 2026 Attesthub
             </p>

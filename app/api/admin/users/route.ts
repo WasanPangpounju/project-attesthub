@@ -35,6 +35,11 @@ export async function GET(req: NextRequest) {
       filter.status = status
     }
 
+    const profileStatus = searchParams.get("profileStatus") || ""
+    if (profileStatus === "pending_approval" || profileStatus === "active") {
+      filter.profileStatus = profileStatus
+    }
+
     const [users, total] = await Promise.all([
       User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       User.countDocuments(filter),

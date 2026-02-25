@@ -1,10 +1,27 @@
 "use client"
 
-import { Bell, Search } from "lucide-react"
+import Link from "next/link"
+import { Bell, Search, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useUser, SignOutButton } from "@clerk/nextjs"
 
 export function DashboardHeader() {
+  const { user } = useUser()
+
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "User"
+  const email = user?.primaryEmailAddress?.emailAddress ?? ""
+  const initials = user?.firstName && user?.lastName
+    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+    : user?.firstName?.[0]?.toUpperCase() ?? "?"
+
   return (
     <header className="border-b border-border bg-card">
       <div className="flex items-center justify-between px-6 py-4 lg:px-8">
@@ -23,12 +40,34 @@ export function DashboardHeader() {
 
           <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-foreground">John Doe</p>
-              <p className="text-xs text-muted-foreground">john@example.com</p>
+              <p className="text-sm font-medium text-foreground">{displayName}</p>
+              <p className="text-xs text-muted-foreground">{email}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
-              JD
-            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm cursor-pointer hover:opacity-90 transition-opacity"
+                  aria-label="User menu"
+                >
+                  {initials}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/profile" className="flex items-center gap-2 cursor-pointer">
+                    <User className="h-4 w-4" />
+                    My Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <SignOutButton>
+                  <DropdownMenuItem className="text-red-500 focus:text-red-600 cursor-pointer">
+                    Sign out
+                  </DropdownMenuItem>
+                </SignOutButton>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

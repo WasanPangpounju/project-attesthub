@@ -65,7 +65,11 @@ import {
   ChevronRight,
   Users,
   UserPlus,
+  Clock,
+  Eye,
 } from "lucide-react"
+import Link from "next/link"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -80,6 +84,7 @@ interface IUser {
   status: "active" | "suspended"
   adminNote?: string
   isPreRegistered?: boolean
+  profileStatus?: "active" | "pending_approval"
   createdAt: string
 }
 
@@ -638,6 +643,7 @@ export function AdminUserTable() {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
+  const [pendingTab, setPendingTab] = useState(false)
   const [page, setPage] = useState(1)
   const [refreshKey, setRefreshKey] = useState(0)
 
@@ -662,7 +668,7 @@ export function AdminUserTable() {
   }, [search])
 
   // Reset page on filter change
-  useEffect(() => { setPage(1) }, [roleFilter, statusFilter])
+  useEffect(() => { setPage(1) }, [roleFilter, statusFilter, pendingTab])
 
   // Fetch users
   useEffect(() => {
@@ -676,6 +682,7 @@ export function AdminUserTable() {
         if (debouncedSearch) params.set("search", debouncedSearch)
         if (roleFilter) params.set("role", roleFilter)
         if (statusFilter) params.set("status", statusFilter)
+        if (pendingTab) params.set("profileStatus", "pending_approval")
         params.set("page", String(page))
         params.set("limit", "20")
 
@@ -698,7 +705,7 @@ export function AdminUserTable() {
 
     load()
     return () => { cancelled = true }
-  }, [debouncedSearch, roleFilter, statusFilter, page, refreshKey])
+  }, [debouncedSearch, roleFilter, statusFilter, pendingTab, page, refreshKey])
 
   function handleUserUpdate(updated: IUser) {
     setUsers((prev) => prev.map((u) => (u._id === updated._id ? updated : u)))
@@ -740,8 +747,28 @@ export function AdminUserTable() {
   const showingFrom = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1
   const showingTo = Math.min(pagination.page * pagination.limit, pagination.total)
 
+  const pendingCount = users.filter((u) => u.profileStatus === "pending_approval").length
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Tabs */}
+      <Tabs value={pendingTab ? "pending" : "all"} onValueChange={(v) => {
+        setPendingTab(v === "pending")
+        if (v !== "pending") setStatusFilter("")
+      }}>
+        <TabsList>
+          <TabsTrigger value="all">All Users</TabsTrigger>
+          <TabsTrigger value="pending" className="gap-2">
+            Pending Approval
+            {pendingCount > 0 && (
+              <span className="h-5 w-5 rounded-full bg-yellow-500 text-white text-xs flex items-center justify-center">
+                {pendingCount}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Toolbar */}
       <div className="flex items-center gap-3">
         <div className="flex flex-wrap items-center gap-3 flex-1">
@@ -858,11 +885,18 @@ export function AdminUserTable() {
                           {getFullName(user)}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
-                        {user.isPreRegistered && (
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0 mt-1 h-4">
-                            pre-registered
-                          </Badge>
-                        )}
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {user.isPreRegistered && (
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                              pre-registered
+                            </Badge>
+                          )}
+                          {user.profileStatus === "pending_approval" && (
+                            <Badge className="bg-yellow-100 text-yellow-800 text-[10px] px-1 py-0 h-4 gap-0.5">
+                              <Clock className="h-2.5 w-2.5" /> Pending Approval
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -893,12 +927,19 @@ export function AdminUserTable() {
 
                   {/* Actions */}
                   <TableCell>
-                    <RowActions
-                      user={user}
-                      onUpdate={handleUserUpdate}
-                      onEdit={openEdit}
-                      onDelete={openDeleteConfirm}
-                    />
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" asChild className="h-8 px-2">
+                        <Link href={`/dashboard/admin/users/${user.clerkUserId}/profile`}>
+                          <Eye className="h-4 w-4 mr-1" /> Profile
+                        </Link>
+                      </Button>
+                      <RowActions
+                        user={user}
+                        onUpdate={handleUserUpdate}
+                        onEdit={openEdit}
+                        onDelete={openDeleteConfirm}
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
