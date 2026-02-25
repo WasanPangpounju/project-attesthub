@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,15 +74,22 @@ const statusColors: Record<string, string> = {
 };
 
 const navItems = [
-  { label: "Project Overview", icon: LayoutDashboard, active: true },
-  { label: "Customer Management", icon: Users, active: false },
-  { label: "Tester Network", icon: Network, active: false },
-  { label: "AI Audit Reports", icon: FileText, active: false },
-  { label: "System Settings", icon: Settings, active: false },
+  { label: "Project Overview", icon: LayoutDashboard, href: "/dashboard/admin" },
+  { label: "Customer Management", icon: Users, href: "/dashboard/admin/users?role=customer" },
+  { label: "Tester Network", icon: Network, href: "/dashboard/admin/users?role=tester" },
+  { label: "AI Audit Reports", icon: FileText, href: "/dashboard/admin/reports" },
+  { label: "System Settings", icon: Settings, href: "/dashboard/admin/settings" },
 ];
 
 export default function AdminDashboard() {
+  const pathname = usePathname();
   const [allowed, setAllowed] = useState(false);
+
+  function isNavActive(href: string) {
+    const base = href.split("?")[0];
+    if (base === "/dashboard/admin") return pathname === base;
+    return pathname.startsWith(base);
+  }
 
   useEffect(() => {
     const FORCE_ADMIN = true; // 🔒 hard-code ตรงนี้
@@ -218,20 +226,21 @@ export default function AdminDashboard() {
           <nav className="flex-1 space-y-1 p-4">
             {navItems.map((item) => {
               const Icon = item.icon;
+              const active = isNavActive(item.href);
               return (
-                <button
+                <Link
                   key={item.label}
-                  type="button"
+                  href={item.href}
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                    item.active
+                    active
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   }`}
-                  aria-current={item.active ? "page" : undefined}
+                  aria-current={active ? "page" : undefined}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
                   {item.label}
-                </button>
+                </Link>
               );
             })}
           </nav>

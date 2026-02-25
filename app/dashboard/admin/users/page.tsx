@@ -3,7 +3,13 @@ import { RoleGuard } from "@/components/role-guard"
 
 export const metadata = { title: "User Management | AttestHub Admin" }
 
-export default function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>
+}) {
+  const { role } = await searchParams
+
   return (
     <RoleGuard allowedRoles={["admin"]}>
       <div className="flex flex-col gap-6 p-6">
@@ -14,7 +20,7 @@ export default function AdminUsersPage() {
             Removing a user deletes their platform record only — their Clerk login is preserved.
           </p>
         </div>
-        <AdminUserTable />
+        <AdminUserTable initialRole={role ?? ""} />
       </div>
     </RoleGuard>
   )

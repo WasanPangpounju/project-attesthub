@@ -628,7 +628,11 @@ function RowActions({ user, onUpdate, onEdit, onDelete }: RowActionsProps) {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export function AdminUserTable() {
+interface AdminUserTableProps {
+  initialRole?: string
+}
+
+export function AdminUserTable({ initialRole = "" }: AdminUserTableProps) {
   const [users, setUsers] = useState<IUser[]>([])
   const [pagination, setPagination] = useState<IPagination>({
     total: 0,
@@ -641,7 +645,7 @@ export function AdminUserTable() {
 
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [roleFilter, setRoleFilter] = useState("")
+  const [roleFilter, setRoleFilter] = useState(initialRole)
   const [statusFilter, setStatusFilter] = useState("")
   const [pendingTab, setPendingTab] = useState(false)
   const [page, setPage] = useState(1)
