@@ -20,6 +20,7 @@ import {
   CheckCircle,
   Menu,
   X,
+  UserCircle,
 } from "lucide-react";
 
 type ProjectStatus = "pending" | "open" | "in_review" | "scheduled" | "completed" | "cancelled";
@@ -79,6 +80,7 @@ const navItems = [
   { label: "Tester Network", icon: Network, href: "/dashboard/admin/users?role=tester" },
   { label: "AI Audit Reports", icon: FileText, href: "/dashboard/admin/reports" },
   { label: "System Settings", icon: Settings, href: "/dashboard/admin/settings" },
+  { label: "My Profile", icon: UserCircle, href: "/dashboard/profile" },
 ];
 
 export default function AdminDashboard() {

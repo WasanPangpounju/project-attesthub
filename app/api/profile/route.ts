@@ -86,6 +86,7 @@ export async function GET() {
           uploadedAt: f.uploadedAt,
         })),
         testerProfile,
+        preferredLanguage: user.preferredLanguage ?? "en",
         adminProfile: user.adminProfile,
         pendingChangeRequest: pendingRequest
           ? {
@@ -98,6 +99,34 @@ export async function GET() {
     })
   } catch (err) {
     console.error("[GET /api/profile]", err)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const body = await req.json()
+    const { preferredLanguage } = body
+
+    if (!preferredLanguage || !["en", "th"].includes(preferredLanguage)) {
+      return NextResponse.json({ error: "Invalid preferredLanguage. Must be 'en' or 'th'" }, { status: 400 })
+    }
+
+    await connectToDatabase()
+
+    const user = await User.findOne({ clerkUserId: userId })
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+
+    user.preferredLanguage = preferredLanguage
+    user.updatedAt = new Date()
+    await user.save()
+
+    return NextResponse.json({ data: { preferredLanguage: user.preferredLanguage } })
+  } catch (err) {
+    console.error("[PATCH /api/profile]", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

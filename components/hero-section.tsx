@@ -1,24 +1,29 @@
+import { cookies } from "next/headers"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { detectLocale, getTranslations } from "@/lib/i18n"
 
-export function HeroSection() {
+export async function HeroSection() {
+  const cookieStore = await cookies()
+  const locale = detectLocale(cookieStore.get("attesthub-locale")?.value)
+  const t = getTranslations(locale)
+
   return (
     <section className="relative overflow-hidden bg-muted/30 py-20 md:py-32">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-6xl lg:text-7xl">
-            Building an Accessible World, For Everyone
+            {t.hero.title}
           </h1>
           <p className="mt-6 text-pretty text-lg leading-relaxed text-muted-foreground md:text-xl">
-            Expert accessibility auditing services for websites, apps, and physical spaces, guided by real users and
-            industry standards.
+            {t.hero.subtitle}
           </p>
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button size="lg" asChild>
-              <Link href="#contact">Get a Free Assessment</Link>
+              <Link href="#contact">{t.hero.ctaPrimary}</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="#services">Explore Our Services</Link>
+              <Link href="#services">{t.hero.ctaSecondary}</Link>
             </Button>
           </div>
         </div>

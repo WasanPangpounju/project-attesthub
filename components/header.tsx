@@ -1,7 +1,14 @@
 import Link from "next/link"
+import { cookies } from "next/headers"
 import { Button } from "@/components/ui/button"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { detectLocale, getTranslations } from "@/lib/i18n"
 
-export function Header() {
+export async function Header() {
+  const cookieStore = await cookies()
+  const locale = detectLocale(cookieStore.get("attesthub-locale")?.value)
+  const t = getTranslations(locale)
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -19,7 +26,7 @@ export function Header() {
                 href="#services"
                 className="text-sm font-medium text-foreground/80 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
               >
-                Services
+                {t.nav.features}
               </Link>
             </li>
             <li>
@@ -27,7 +34,7 @@ export function Header() {
                 href="#how-we-work"
                 className="text-sm font-medium text-foreground/80 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
               >
-                How We Work
+                {t.nav.about}
               </Link>
             </li>
             <li>
@@ -35,29 +42,24 @@ export function Header() {
                 href="#testimonials"
                 className="text-sm font-medium text-foreground/80 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
               >
-                Testimonials
+                {t.nav.pricing}
               </Link>
             </li>
-                        <li>
+            <li>
               <Link
                 href="/sign-in"
                 className="text-sm font-medium text-foreground/80 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
               >
-                Sign-in
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/sign-up"
-                className="text-sm font-medium text-foreground/80 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
-              >
-                Sign-up
+                {t.nav.login}
               </Link>
             </li>
             <li>
               <Button size="sm" asChild>
-                <Link href="#contact">Get Started</Link>
+                <Link href="#contact">{t.nav.getStarted}</Link>
               </Button>
+            </li>
+            <li>
+              <LanguageSwitcher variant="minimal" />
             </li>
           </ul>
         </nav>

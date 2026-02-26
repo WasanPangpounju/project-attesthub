@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useUser, SignOutButton } from "@clerk/nextjs"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 
 export function DashboardHeader() {
   const { user } = useUser()
@@ -33,6 +34,8 @@ export function DashboardHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher variant="minimal" />
+
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />

@@ -53,6 +53,9 @@ export interface IUser extends Document {
     responsibilities?: string;
   };
 
+  // Language preference
+  preferredLanguage?: 'en' | 'th';
+
   // Profile change request status
   profileStatus?: 'active' | 'pending_approval';
 
@@ -122,6 +125,9 @@ const UserSchema = new Schema<IUser>({
     department: { type: String },
     responsibilities: { type: String },
   },
+
+  // Language preference
+  preferredLanguage: { type: String, enum: ['en', 'th'], default: 'en' },
 
   // Profile status
   profileStatus: { type: String, enum: ['active', 'pending_approval'], default: 'active' },

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useUser } from "@clerk/nextjs"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { useTranslation } from "@/lib/i18n/useTranslation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -39,7 +41,6 @@ import { cn } from "@/lib/utils"
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Lang = "en" | "th"
-const LANG_STORAGE_KEY = "attesthub_lang"
 
 type TesterWorkStatus = "assigned" | "accepted" | "working" | "done" | "removed"
 type TesterRole = "lead" | "member" | "reviewer"
@@ -212,10 +213,6 @@ const priorityColors: Record<string, string> = {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function isLang(v: unknown): v is Lang {
-  return v === "en" || v === "th"
-}
 
 function fmtDate(d?: string): string {
   if (!d) return "—"
@@ -398,18 +395,9 @@ function TaskCard({
 export default function TesterDashboardPage() {
   const { user } = useUser()
 
-  // Lang
-  const [lang, setLang] = useState<Lang>("en")
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(LANG_STORAGE_KEY)
-      if (isLang(saved)) setLang(saved)
-    } catch { /* ignore */ }
-  }, [])
-  useEffect(() => {
-    try { localStorage.setItem(LANG_STORAGE_KEY, lang) } catch { /* ignore */ }
-  }, [lang])
-  const t = useMemo(() => dict[lang], [lang])
+  // Lang — synced via cookie + DB via useTranslation
+  const { locale } = useTranslation()
+  const t = dict[locale as Lang] ?? dict.en
 
   const testerName = useMemo(() => {
     if (!user) return "Tester"
@@ -826,25 +814,7 @@ export default function TesterDashboardPage() {
               </h1>
               <p className="text-lg text-muted-foreground">{t.subtitle}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{t.langLabel}:</span>
-              <Button
-                type="button"
-                variant={lang === "en" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setLang("en")}
-              >
-                {t.langEn}
-              </Button>
-              <Button
-                type="button"
-                variant={lang === "th" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setLang("th")}
-              >
-                {t.langTh}
-              </Button>
-            </div>
+            <LanguageSwitcher variant="minimal" />
           </div>
 
           {/* Stats Bar */}
