@@ -95,6 +95,27 @@ export interface IAuditRequest {
   aiConfidence?: number;
   aiReportStatus?: "none" | "generated" | "validated" | "rejected";
 
+  // scan configuration
+  loginRequired?: boolean;
+  loginUrl?: string;
+  loginCredentials?: {
+    usernameField?: string;
+    passwordField?: string;
+    submitSelector?: string;
+    username?: string;
+    encryptedPassword?: string;
+  };
+  submitRequired?: boolean;
+  submitSteps?: {
+    selector: string;
+    action: "click" | "fill";
+    value?: string;
+  }[];
+  scanScope: "single" | "full_site";
+  maxPages?: number;
+  scheduleEnabled?: boolean;
+  scheduleCron?: string;
+
   // org members & share token
   orgMembers: string[];        // additional Clerk userIds who can access this project
   shareToken?: string;         // secure random token for public link
@@ -196,6 +217,22 @@ const AuditRequestSchema = new Schema<IAuditRequest>(
 
     aiConfidence: { type: Number, min: 0, max: 100 },
     aiReportStatus: { type: String, enum: ["none", "generated", "validated", "rejected"], default: "none" },
+
+    loginRequired: { type: Boolean, default: false },
+    loginUrl: { type: String },
+    loginCredentials: {
+      usernameField: { type: String, default: 'input[name="email"]' },
+      passwordField: { type: String, default: 'input[name="password"]' },
+      submitSelector: { type: String, default: 'button[type="submit"]' },
+      username: { type: String },
+      encryptedPassword: { type: String },
+    },
+    submitRequired: { type: Boolean, default: false },
+    submitSteps: [{ selector: String, action: String, value: String }],
+    scanScope: { type: String, enum: ["single", "full_site"], default: "single" },
+    maxPages: { type: Number, default: 50 },
+    scheduleEnabled: { type: Boolean, default: false },
+    scheduleCron: { type: String },
 
     orgMembers: { type: [String], default: [] },
     shareToken: { type: String, index: true, sparse: true },

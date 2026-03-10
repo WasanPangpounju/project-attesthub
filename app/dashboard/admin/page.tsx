@@ -15,6 +15,7 @@ import {
   Network,
   FileText,
   Settings,
+  ScanLine,
   Search,
   UserPlus,
   CheckCircle,
@@ -78,7 +79,8 @@ const navItems = [
   { label: "Project Overview", icon: LayoutDashboard, href: "/dashboard/admin" },
   { label: "Customer Management", icon: Users, href: "/dashboard/admin/users?role=customer" },
   { label: "Tester Network", icon: Network, href: "/dashboard/admin/users?role=tester" },
-  { label: "AI Audit Reports", icon: FileText, href: "/dashboard/admin/reports" },
+  { label: "AI Audit Reports", icon: FileText, href: "/dashboard/reports" },
+  { label: "Scan Management", icon: ScanLine, href: "/dashboard/admin/scan" },
   { label: "System Settings", icon: Settings, href: "/dashboard/admin/settings" },
   { label: "My Profile", icon: UserCircle, href: "/dashboard/profile" },
 ];

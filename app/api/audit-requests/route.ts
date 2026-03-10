@@ -2,29 +2,18 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import AuditRequest from "@/models/audit-request"
-import User from "@/models/User"
+import { encryptPassword } from "@/lib/crypto"
 
 export const runtime = "nodejs"
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     await connectToDatabase()
 
-    const user = await User.findOne({ clerkUserId: userId }).lean()
-    if (!user || user.role !== "customer") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
-    const { searchParams } = new URL(req.url)
-    const statusFilter = searchParams.get("status")
-
-    const filter: Record<string, string> = { customerId: userId }
-    if (statusFilter) filter.status = statusFilter
-
-    const requests = await AuditRequest.find(filter).sort({ createdAt: -1 }).lean()
+    const requests = await AuditRequest.find({ requestedBy: userId }).sort({ createdAt: -1 }).lean()
 
     return NextResponse.json({ data: requests }, { status: 200 })
   } catch (err) {
@@ -40,47 +29,19 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase()
 
-    const user = await User.findOne({ clerkUserId: userId }).lean()
-    if (!user || user.role !== "customer") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
     const body = await req.json()
-    const {
-      projectName,
-      serviceCategory,
-      targetUrl,
-      locationAddress,
-      accessibilityStandard,
-      servicePackage,
-      devices,
-      specialInstructions,
-      files,
-    } = body
 
-    if (!projectName || !serviceCategory || !accessibilityStandard || !servicePackage) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    if (body.loginCredentials?.password) {
+      body.loginCredentials.encryptedPassword = encryptPassword(body.loginCredentials.password)
+      delete body.loginCredentials.password
     }
 
     const newRequest = await AuditRequest.create({
-      customerId: userId,
-      projectName,
-      serviceCategory,
-      targetUrl: targetUrl ?? "",
-      locationAddress: locationAddress ?? "",
-      accessibilityStandard,
-      servicePackage,
-      devices: Array.isArray(devices) ? devices : [],
-      specialInstructions: specialInstructions ?? "",
-      files:
-        Array.isArray(files) && files.every((f: unknown) => f && typeof (f as Record<string, unknown>).name === "string")
-          ? files
-          : [],
-      priceAmount: 0,
-      priceCurrency: "THB",
+      ...body,
+      requestedBy: userId,
     })
 
-    return NextResponse.json({ message: "Audit request created", data: newRequest }, { status: 201 })
+    return NextResponse.json({ data: newRequest }, { status: 201 })
   } catch (err) {
     console.error("[POST /api/audit-requests]", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

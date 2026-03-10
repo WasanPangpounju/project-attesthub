@@ -33,12 +33,23 @@ interface FormData {
   devices: string[]
   specialInstructions: string
   files: File[]
+  // scan configuration
+  scanScope: "single" | "full_site"
+  maxPages: number
+  loginRequired: boolean
+  loginUrl: string
+  username: string
+  password: string
+  usernameField: string
+  passwordField: string
+  submitSelector: string
 }
 
 const STEPS = [
   { number: 1, title: "Project Basic Info", description: "Tell us about your project" },
   { number: 2, title: "Audit Standards & Methodology", description: "Choose your audit approach" },
   { number: 3, title: "Specific Requirements", description: "Additional testing details" },
+  { number: 4, title: "Scan Configuration", description: "Configure automated scanning options" },
 ]
 
 const SERVICE_PACKAGES = [
@@ -75,6 +86,15 @@ export function AuditRequestForm() {
     devices: [],
     specialInstructions: "",
     files: [],
+    scanScope: "single",
+    maxPages: 50,
+    loginRequired: false,
+    loginUrl: "",
+    username: "",
+    password: "",
+    usernameField: 'input[name="email"]',
+    passwordField: 'input[name="password"]',
+    submitSelector: 'button[type="submit"]',
   })
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -166,7 +186,7 @@ const handleSubmit = async () => {
   }
 
   try {
-    const { files, ...rest } = formData
+    const { files, password, ...rest } = formData
     const customerId = user.id
 
     // 3) เรียก API บันทึกข้อมูลไป backend
@@ -177,7 +197,8 @@ const handleSubmit = async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...rest,
-          customerId, // ส่งใน body ด้วย เผื่อ backend ใช้จาก body
+          customerId,
+          password, // API จะ encrypt ก่อน save และไม่ return กลับ
           files: files.map((file) => ({
             name: file.name,
             size: file.size,
@@ -227,7 +248,7 @@ const handleSubmit = async () => {
               setIsSubmitted(false)
               setCurrentStep(1)
               setFormData({
-  customerId: "",        // ให้ useEffect ไป set เป็น user.id อีกที
+  customerId: "",
   projectName: "",
   serviceCategory: "",
   targetUrl: "",
@@ -237,6 +258,15 @@ const handleSubmit = async () => {
   devices: [],
   specialInstructions: "",
   files: [],
+  scanScope: "single",
+  maxPages: 50,
+  loginRequired: false,
+  loginUrl: "",
+  username: "",
+  password: "",
+  usernameField: 'input[name="email"]',
+  passwordField: 'input[name="password"]',
+  submitSelector: 'button[type="submit"]',
 })
             }}
             size="lg"
@@ -604,6 +634,136 @@ const handleSubmit = async () => {
                 </div>
                 {formData.files.length > 0 && (
                   <div className="text-sm text-muted-foreground">{formData.files.length} file(s) selected</div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Step 4: Scan Configuration */}
+          {currentStep === 4 && (
+            <>
+              {/* Scan Scope */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Scan Scope</Label>
+                <RadioGroup
+                  value={formData.scanScope}
+                  onValueChange={(value) => updateFormData("scanScope", value as "single" | "full_site")}
+                  className="space-y-3"
+                >
+                  <div className="flex items-center space-x-3 rounded-md border border-border p-4 hover:bg-accent/5 transition-colors">
+                    <RadioGroupItem value="single" id="scope-single" className="h-5 w-5" />
+                    <div className="flex-1">
+                      <Label htmlFor="scope-single" className="cursor-pointer text-base font-normal">Single Page</Label>
+                      <p className="text-sm text-muted-foreground">Scan only the target URL</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 rounded-md border border-border p-4 hover:bg-accent/5 transition-colors">
+                    <RadioGroupItem value="full_site" id="scope-full" className="h-5 w-5" />
+                    <div className="flex-1">
+                      <Label htmlFor="scope-full" className="cursor-pointer text-base font-normal">Full Site</Label>
+                      <p className="text-sm text-muted-foreground">Crawl and scan multiple pages</p>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {formData.scanScope === "full_site" && (
+                <div className="space-y-2">
+                  <Label htmlFor="maxPages" className="text-base font-medium">Max Pages</Label>
+                  <Input
+                    id="maxPages"
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={formData.maxPages}
+                    onChange={(e) => updateFormData("maxPages", parseInt(e.target.value) || 50)}
+                    className="h-12 text-base w-40"
+                  />
+                  <p className="text-sm text-muted-foreground">Maximum number of pages to scan (default 50)</p>
+                </div>
+              )}
+
+              {/* Login Configuration */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center space-x-3 rounded-md border border-border p-4">
+                  <Checkbox
+                    id="loginRequired"
+                    checked={formData.loginRequired}
+                    onCheckedChange={(checked) => updateFormData("loginRequired", !!checked)}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor="loginRequired" className="cursor-pointer text-base font-normal">
+                    Website requires login to access
+                  </Label>
+                </div>
+
+                {formData.loginRequired && (
+                  <div className="space-y-4 pl-4 border-l-2 border-accent/30">
+                    <div className="space-y-2">
+                      <Label htmlFor="loginUrl" className="text-base font-medium">Login URL</Label>
+                      <Input
+                        id="loginUrl"
+                        type="url"
+                        value={formData.loginUrl}
+                        onChange={(e) => updateFormData("loginUrl", e.target.value)}
+                        placeholder="https://example.com/login"
+                        className="h-12 text-base"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="loginUsername" className="text-base font-medium">Username / Email</Label>
+                        <Input
+                          id="loginUsername"
+                          value={formData.username}
+                          onChange={(e) => updateFormData("username", e.target.value)}
+                          placeholder="user@example.com"
+                          className="h-12 text-base"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="loginPassword" className="text-base font-medium">Password</Label>
+                        <Input
+                          id="loginPassword"
+                          type="password"
+                          value={formData.password}
+                          onChange={(e) => updateFormData("password", e.target.value)}
+                          placeholder="••••••••"
+                          className="h-12 text-base"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="usernameField" className="text-base font-medium">Username field selector</Label>
+                      <Input
+                        id="usernameField"
+                        value={formData.usernameField}
+                        onChange={(e) => updateFormData("usernameField", e.target.value)}
+                        placeholder='input[name="email"]'
+                        className="h-12 text-base font-mono text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="passwordField" className="text-base font-medium">Password field selector</Label>
+                      <Input
+                        id="passwordField"
+                        value={formData.passwordField}
+                        onChange={(e) => updateFormData("passwordField", e.target.value)}
+                        placeholder='input[name="password"]'
+                        className="h-12 text-base font-mono text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="submitSelector" className="text-base font-medium">Submit button selector</Label>
+                      <Input
+                        id="submitSelector"
+                        value={formData.submitSelector}
+                        onChange={(e) => updateFormData("submitSelector", e.target.value)}
+                        placeholder='button[type="submit"]'
+                        className="h-12 text-base font-mono text-sm"
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             </>

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Button } from "@/components/ui/button"
-import { CheckSquare, ClipboardList, FileText, LogOut, Menu, Settings, UserCircle, X } from "lucide-react"
+import { CheckSquare, ClipboardList, FileBarChart, FileText, LogOut, Menu, Settings, UserCircle, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface DashboardLayoutProps {
@@ -36,6 +36,12 @@ export function DashboardLayout({ children, testerName }: DashboardLayoutProps) 
       name: "Accessibility Settings",
       href: "/settings",
       icon: Settings,
+      current: false,
+    },
+    {
+      name: "Audit Reports",
+      href: "/dashboard/reports",
+      icon: FileBarChart,
       current: false,
     },
     {
