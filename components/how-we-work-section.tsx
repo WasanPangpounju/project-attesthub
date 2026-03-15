@@ -1,64 +1,80 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Bot, Sparkles, Users, FileCheck } from "lucide-react"
-import { ArrowRight } from "lucide-react"
+import { cookies } from "next/headers"
+import { Search, Brain, Users, FileText } from "lucide-react"
+import { detectLocale, getTranslations } from "@/lib/i18n"
 
-const steps = [
-  {
-    icon: Bot,
-    title: "Automated Tools",
-    description: "Initial scan using industry-leading accessibility testing tools",
-  },
-  {
-    icon: Sparkles,
-    title: "AI Analysis",
-    description: "Advanced AI-powered analysis to identify complex accessibility issues",
-  },
-  {
-    icon: Users,
-    title: "Real User Testing",
-    description: "Testing with disabled and elderly users for authentic feedback",
-  },
-  {
-    icon: FileCheck,
-    title: "Expert Review",
-    description: "Comprehensive report with actionable recommendations",
-  },
-]
+export async function HowWeWorkSection() {
+  const cookieStore = await cookies()
+  const locale = detectLocale(cookieStore.get("attesthub-locale")?.value)
+  const t = getTranslations(locale)
 
-export function HowWeWorkSection() {
+  const steps = [
+    {
+      icon: Search,
+      title: t.landing.step1Title,
+      description: t.landing.step1Desc,
+    },
+    {
+      icon: Brain,
+      title: t.landing.step2Title,
+      description: t.landing.step2Desc,
+    },
+    {
+      icon: Users,
+      title: t.landing.step3Title,
+      description: t.landing.step3Desc,
+    },
+    {
+      icon: FileText,
+      title: t.landing.step4Title,
+      description: t.landing.step4Desc,
+    },
+  ]
+
   return (
-    <section id="how-we-work" className="bg-muted/30 py-20 md:py-32">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
-            How We Work
-          </h2>
-          <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            Our proven methodology combines technology with human expertise
-          </p>
+    <section id="how-we-work" className="py-20 md:py-28" style={{ backgroundColor: "#ffffff" }}>
+      <div className="container mx-auto px-6">
+        {/* Section label */}
+        <div className="mb-4 text-center">
+          <span
+            className="text-xs font-bold uppercase tracking-widest"
+            style={{ color: "#0f7c6e" }}
+          >
+            {t.landing.howWeWorkLabel}
+          </span>
         </div>
 
-        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map((step, index) => (
-            <div key={index} className="relative">
-              <Card className="h-full">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    <step.icon className="h-8 w-8" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
-                  </div>
-                </CardContent>
-              </Card>
+        {/* H2 */}
+        <h2
+          className="font-display mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
+          style={{ color: "#1a2744" }}
+        >
+          {t.landing.howWeWorkTitle}
+        </h2>
 
-              {/* Arrow connector for desktop */}
-              {index < steps.length - 1 && (
-                <div className="absolute -right-3 top-1/2 hidden -translate-y-1/2 lg:block" aria-hidden="true">
-                  <ArrowRight className="h-6 w-6 text-primary" />
-                </div>
-              )}
+        {/* Steps */}
+        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step, index) => (
+            <div key={index} className="flex flex-col items-center text-center">
+              {/* Step number + icon */}
+              <div
+                className="mb-5 flex h-16 w-16 items-center justify-center rounded-full"
+                style={{ backgroundColor: "#0f7c6e" }}
+              >
+                <step.icon className="h-7 w-7 text-white" aria-hidden="true" />
+              </div>
+              {/* Step number badge */}
+              <div
+                className="mb-3 text-xs font-bold uppercase tracking-widest"
+                style={{ color: "#13a08e" }}
+              >
+                {String(index + 1).padStart(2, "0")}
+              </div>
+              <h3 className="mb-2 text-base font-semibold" style={{ color: "#1a2744" }}>
+                {step.title}
+              </h3>
+              <p className="text-sm leading-relaxed" style={{ color: "#5a6478" }}>
+                {step.description}
+              </p>
             </div>
           ))}
         </div>

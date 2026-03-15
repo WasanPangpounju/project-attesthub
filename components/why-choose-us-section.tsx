@@ -1,53 +1,71 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Award, Heart, HeadphonesIcon } from "lucide-react"
+import { cookies } from "next/headers"
+import { detectLocale, getTranslations } from "@/lib/i18n"
 
-const benefits = [
-  {
-    icon: Award,
-    title: "Industry Expertise",
-    description:
-      "Our team consists of certified accessibility specialists with years of experience in WCAG compliance, ADA standards, and inclusive design principles.",
-  },
-  {
-    icon: Heart,
-    title: "User-Centric Approach",
-    description:
-      "We work directly with people with disabilities and elderly users to ensure our audits reflect real-world experiences and needs.",
-  },
-  {
-    icon: HeadphonesIcon,
-    title: "Continuous Support",
-    description:
-      "Beyond the audit, we provide ongoing support and guidance to help you maintain and improve accessibility over time.",
-  },
-]
+export async function WhyChooseUsSection() {
+  const cookieStore = await cookies()
+  const locale = detectLocale(cookieStore.get("attesthub-locale")?.value)
+  const t = getTranslations(locale)
 
-export function WhyChooseUsSection() {
+  const benefits = [
+    {
+      number: "01",
+      title: t.landing.benefit1Title,
+      description: t.landing.benefit1Desc,
+    },
+    {
+      number: "02",
+      title: t.landing.benefit2Title,
+      description: t.landing.benefit2Desc,
+    },
+    {
+      number: "03",
+      title: t.landing.benefit3Title,
+      description: t.landing.benefit3Desc,
+    },
+  ]
+
   return (
-    <section className="py-20 md:py-32">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
-            Why Choose Us
-          </h2>
-          <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            Trusted by organizations worldwide for accessibility excellence
-          </p>
+    <section className="py-20 md:py-28" style={{ backgroundColor: "#f9fafb" }}>
+      <div className="container mx-auto px-6">
+        {/* Section label */}
+        <div className="mb-4 text-center">
+          <span
+            className="text-xs font-bold uppercase tracking-widest"
+            style={{ color: "#0f7c6e" }}
+          >
+            {t.landing.whyChooseLabel}
+          </span>
         </div>
 
-        <div className="mt-16 grid gap-8 md:grid-cols-3">
-          {benefits.map((benefit, index) => (
-            <Card key={index} className="border-2 transition-all hover:border-primary hover:shadow-lg">
-              <CardHeader className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent text-accent-foreground">
-                  <benefit.icon className="h-8 w-8" aria-hidden="true" />
-                </div>
-                <CardTitle className="text-xl">{benefit.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-base leading-relaxed text-muted-foreground">{benefit.description}</p>
-              </CardContent>
-            </Card>
+        {/* H2 */}
+        <h2
+          className="font-display mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
+          style={{ color: "#1a2744" }}
+        >
+          {t.landing.whyChooseTitle}
+        </h2>
+
+        {/* Cards */}
+        <div className="mt-14 grid gap-6 md:grid-cols-3">
+          {benefits.map((benefit) => (
+            <div
+              key={benefit.number}
+              className="rounded-[14px] bg-white p-8 transition-shadow hover:shadow-md"
+              style={{ border: "0.5px solid #e2e8f0" }}
+            >
+              <div
+                className="font-display mb-4 text-5xl font-normal leading-none"
+                style={{ color: "#0f7c6e" }}
+              >
+                {benefit.number}
+              </div>
+              <h3 className="mb-3 text-base font-semibold" style={{ color: "#1a2744" }}>
+                {benefit.title}
+              </h3>
+              <p className="text-sm leading-relaxed" style={{ color: "#5a6478" }}>
+                {benefit.description}
+              </p>
+            </div>
           ))}
         </div>
       </div>

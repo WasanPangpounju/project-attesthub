@@ -1,53 +1,72 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Globe, Smartphone, Building2 } from "lucide-react"
+import { cookies } from "next/headers"
+import { Monitor, Smartphone, Home } from "lucide-react"
+import { detectLocale, getTranslations } from "@/lib/i18n"
 
-const services = [
-  {
-    icon: Globe,
-    title: "Web Accessibility Audits (WCAG 2.2)",
-    description:
-      "Comprehensive website evaluations against the latest WCAG 2.2 standards. We identify barriers and provide actionable recommendations to ensure your digital presence is accessible to all users.",
-  },
-  {
-    icon: Smartphone,
-    title: "Inclusive App Testing (Mobile & Web)",
-    description:
-      "Thorough testing of mobile and web applications with real users, including people with disabilities. We evaluate usability, navigation, and compatibility with assistive technologies.",
-  },
-  {
-    icon: Building2,
-    title: "Universal Design for Physical Spaces",
-    description:
-      "On-site assessments of physical environments to ensure they meet accessibility standards. From offices to retail spaces, we help create welcoming environments for everyone.",
-  },
-]
+export async function ServicesSection() {
+  const cookieStore = await cookies()
+  const locale = detectLocale(cookieStore.get("attesthub-locale")?.value)
+  const t = getTranslations(locale)
 
-export function ServicesSection() {
+  const services = [
+    {
+      icon: Monitor,
+      title: t.landing.service1Title,
+      description: t.landing.service1Desc,
+    },
+    {
+      icon: Smartphone,
+      title: t.landing.service2Title,
+      description: t.landing.service2Desc,
+    },
+    {
+      icon: Home,
+      title: t.landing.service3Title,
+      description: t.landing.service3Desc,
+    },
+  ]
+
   return (
-    <section id="services" className="py-20 md:py-32">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
-            Our Services
-          </h2>
-          <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            Comprehensive accessibility solutions tailored to your needs
-          </p>
+    <section id="services" className="py-20 md:py-28" style={{ backgroundColor: "#f9fafb" }}>
+      <div className="container mx-auto px-6">
+        {/* Section label */}
+        <div className="mb-4 text-center">
+          <span
+            className="text-xs font-bold uppercase tracking-widest"
+            style={{ color: "#0f7c6e" }}
+          >
+            {t.landing.servicesLabel}
+          </span>
         </div>
 
-        <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        {/* H2 */}
+        <h2
+          className="font-display mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
+          style={{ color: "#1a2744" }}
+        >
+          {t.landing.servicesTitle}
+        </h2>
+
+        {/* Cards */}
+        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {services.map((service, index) => (
-            <Card key={index} className="transition-shadow hover:shadow-lg">
-              <CardHeader>
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <service.icon className="h-6 w-6" aria-hidden="true" />
-                </div>
-                <CardTitle className="text-xl">{service.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-base leading-relaxed">{service.description}</CardDescription>
-              </CardContent>
-            </Card>
+            <div
+              key={index}
+              className="group rounded-[14px] bg-white p-8 transition-shadow hover:shadow-md"
+              style={{ border: "0.5px solid #e2e8f0" }}
+            >
+              <div
+                className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl"
+                style={{ backgroundColor: "#e8f5f3" }}
+              >
+                <service.icon className="h-6 w-6" style={{ color: "#0f7c6e" }} aria-hidden="true" />
+              </div>
+              <h3 className="mb-3 text-base font-semibold" style={{ color: "#1a2744" }}>
+                {service.title}
+              </h3>
+              <p className="text-sm leading-relaxed" style={{ color: "#5a6478" }}>
+                {service.description}
+              </p>
+            </div>
           ))}
         </div>
       </div>

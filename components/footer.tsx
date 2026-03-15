@@ -1,46 +1,60 @@
+import { cookies } from "next/headers"
 import Link from "next/link"
-import { Facebook, Twitter, Linkedin, Mail } from "lucide-react"
+import { ShieldCheck, Facebook, Twitter, Linkedin, Mail } from "lucide-react"
+import { detectLocale, getTranslations } from "@/lib/i18n"
 
-export function Footer() {
+export async function Footer() {
+  const cookieStore = await cookies()
+  const locale = detectLocale(cookieStore.get("attesthub-locale")?.value)
+  const t = getTranslations(locale)
+
   return (
-    <footer className="border-t border-border bg-muted/30">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {/* Company Info */}
+    <footer style={{ backgroundColor: "#1a2744" }}>
+      <div className="container mx-auto px-6 py-14">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+          {/* Brand */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Attesthub</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Building an accessible world for everyone through expert auditing and real user testing.
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5" style={{ color: "#13a08e" }} aria-hidden="true" />
+              <span className="text-base font-bold text-white">Attesthub</span>
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
+              {t.landing.footerTagline}
             </p>
           </div>
 
           {/* Quick Links */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Quick Links</h3>
-            <nav aria-label="Footer navigation">
-              <ul className="space-y-2 text-sm">
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-white">
+              {t.landing.footerQuickLinks}
+            </h3>
+            <nav aria-label="Footer quick links">
+              <ul className="space-y-2">
                 <li>
                   <Link
                     href="#services"
-                    className="text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
+                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ color: "rgba(255,255,255,0.55)" }}
                   >
-                    Services
+                    {t.landing.footerServices}
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="#how-we-work"
-                    className="text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
+                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ color: "rgba(255,255,255,0.55)" }}
                   >
-                    How We Work
+                    {t.landing.footerHowWeWork}
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="#testimonials"
-                    className="text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
+                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ color: "rgba(255,255,255,0.55)" }}
                   >
-                    Testimonials
+                    {t.landing.footerTestimonials}
                   </Link>
                 </li>
               </ul>
@@ -49,81 +63,96 @@ export function Footer() {
 
           {/* Legal */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Legal</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-white">
+              {t.landing.footerLegal}
+            </h3>
             <nav aria-label="Legal navigation">
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2">
                 <li>
                   <Link
                     href="/about"
-                    className="text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
+                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ color: "rgba(255,255,255,0.55)" }}
                   >
-                    About Us
+                    {t.landing.footerAbout}
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/contact"
-                    className="text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
+                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ color: "rgba(255,255,255,0.55)" }}
                   >
-                    Contact
+                    {t.landing.footerContact}
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/privacy"
-                    className="text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
+                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ color: "rgba(255,255,255,0.55)" }}
                   >
-                    Privacy Policy
+                    {t.landing.footerPrivacy}
                   </Link>
                 </li>
               </ul>
             </nav>
           </div>
 
-          {/* Social Media */}
+          {/* Connect */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Connect With Us</h3>
-            <div className="flex gap-4">
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-white">
+              {t.landing.footerConnect}
+            </h3>
+            <div className="flex gap-3">
               <Link
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                style={{ border: "0.5px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.55)" }}
                 aria-label="Visit our Facebook page"
               >
-                <Facebook className="h-5 w-5" aria-hidden="true" />
+                <Facebook className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href="https://twitter.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
-                aria-label="Visit our Twitter page"
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                style={{ border: "0.5px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.55)" }}
+                aria-label="Visit our Twitter/X page"
               >
-                <Twitter className="h-5 w-5" aria-hidden="true" />
+                <Twitter className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href="https://linkedin.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                style={{ border: "0.5px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.55)" }}
                 aria-label="Visit our LinkedIn page"
               >
-                <Linkedin className="h-5 w-5" aria-hidden="true" />
+                <Linkedin className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link
                 href="mailto:contact@attesthub.com"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                style={{ border: "0.5px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.55)" }}
                 aria-label="Send us an email"
               >
-                <Mail className="h-5 w-5" aria-hidden="true" />
+                <Mail className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
           </div>
         </div>
 
-        <div className="mt-12 border-t border-border pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Attesthub. All rights reserved.</p>
+        {/* Bottom bar */}
+        <div
+          className="mt-12 pt-8 text-center text-xs"
+          style={{ borderTop: "0.5px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)" }}
+        >
+          {t.landing.footerCopyright}
         </div>
       </div>
     </footer>

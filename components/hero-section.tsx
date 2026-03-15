@@ -1,5 +1,4 @@
 import { cookies } from "next/headers"
-import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { detectLocale, getTranslations } from "@/lib/i18n"
 
@@ -9,32 +8,60 @@ export async function HeroSection() {
   const t = getTranslations(locale)
 
   return (
-    <section className="relative overflow-hidden bg-muted/30 py-20 md:py-32">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-6xl lg:text-7xl">
-            {t.hero.title}
+    <section className="py-24 md:py-36" style={{ backgroundColor: "#ffffff" }}>
+      <div className="container mx-auto px-6">
+        <div className="mx-auto max-w-[760px] text-center">
+          {/* Badge */}
+          <div className="mb-6 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide"
+            style={{ backgroundColor: "#e8f5f3", color: "#0f7c6e" }}
+          >
+            {t.landing.heroBadge}
+          </div>
+
+          {/* H1 */}
+          <h1
+            className="font-display text-balance leading-tight tracking-tight"
+            style={{ fontSize: "clamp(40px, 5vw, 56px)", color: "#1a2744" }}
+          >
+            {t.landing.heroTitleMain}{" "}
+            <em
+              className="not-italic"
+              style={{ color: "#0f7c6e", fontStyle: "italic" }}
+            >
+              {t.landing.heroTitleHighlight}
+            </em>
           </h1>
-          <p className="mt-6 text-pretty text-lg leading-relaxed text-muted-foreground md:text-xl">
+
+          {/* Subtitle */}
+          <p
+            className="mt-6 text-pretty text-lg leading-relaxed"
+            style={{ color: "#5a6478" }}
+          >
             {t.hero.subtitle}
           </p>
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Button size="lg" asChild>
-              <Link href="#contact">{t.hero.ctaPrimary}</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="#services">{t.hero.ctaSecondary}</Link>
-            </Button>
+
+          {/* CTAs */}
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <Link
+              href="/sign-up"
+              className="inline-flex items-center rounded-[14px] px-6 py-3 text-base font-semibold text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+              style={{ backgroundColor: "#0f7c6e" }}
+            >
+              {t.hero.ctaPrimary}
+            </Link>
+            <Link
+              href="#services"
+              className="inline-flex items-center rounded-[14px] px-6 py-3 text-base font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+              style={{
+                border: "1px solid #1a2744",
+                color: "#1a2744",
+                backgroundColor: "transparent",
+              }}
+            >
+              {t.hero.ctaSecondary}
+            </Link>
           </div>
         </div>
-      </div>
-
-      {/* Decorative element */}
-      <div
-        className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
-        aria-hidden="true"
-      >
-        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-primary to-accent opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]" />
       </div>
     </section>
   )
