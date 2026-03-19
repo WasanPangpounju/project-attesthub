@@ -1,8 +1,9 @@
 import type React from "react"
 import type { Metadata , Viewport } from "next"
-import { Geist, Geist_Mono, DM_Serif_Display, DM_Sans } from "next/font/google"
+import { Geist, Geist_Mono, Kanit } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ClerkProvider } from "@clerk/nextjs"
+import { PageviewTracker } from "@/components/pageview-tracker"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"],
@@ -11,15 +12,10 @@ const _geist = Geist({ subsets: ["latin"],
 const _geistMono = Geist_Mono({ subsets: ["latin"],
     variable: "--font-geist-mono",
  })
-const dmSerifDisplay = DM_Serif_Display({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-dm-serif",
-})
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
+const kanit = Kanit({
+  subsets: ["latin", "thai"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-kanit",
 })
 
 export const metadata: Metadata = {
@@ -63,7 +59,8 @@ export default function RootLayout({
   return (
               <ClerkProvider>
     <html lang="en">
-                <body className={`${_geist.variable} ${_geistMono.variable} ${dmSerifDisplay.variable} ${dmSans.variable} font-sans antialiased`}>
+                <body className={`${_geist.variable} ${_geistMono.variable} ${kanit.variable} font-sans antialiased`}>
+        <PageviewTracker />
         {children}
         <Analytics />
       </body>

@@ -8,14 +8,14 @@ export async function CtaSection() {
   const t = getTranslations(locale)
 
   return (
-    <section id="contact" className="py-20 md:py-28" style={{ backgroundColor: "#f9fafb" }}>
+    <section id="contact" className="py-14 md:py-20" style={{ backgroundColor: "#f9fafb" }}>
       <div className="container mx-auto px-6">
         <div
           className="mx-auto max-w-3xl px-8 py-16 text-center md:px-16 md:py-20"
           style={{ backgroundColor: "#1a2744", borderRadius: "18px" }}
         >
           <h2
-            className="font-display text-balance text-3xl leading-tight text-white md:text-4xl"
+            className="font-display font-semibold text-balance text-3xl leading-tight text-white md:text-4xl"
           >
             {t.landing.ctaTitle}
           </h2>

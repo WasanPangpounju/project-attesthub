@@ -18,7 +18,7 @@ export async function Header() {
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+          className="flex shrink-0 items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
         >
           <ShieldCheck className="h-6 w-6" style={{ color: "#0f7c6e" }} aria-hidden="true" />
           <span className="text-lg font-bold" style={{ color: "#1a2744" }}>
@@ -27,8 +27,8 @@ export async function Header() {
         </Link>
 
         {/* Nav */}
-        <nav aria-label="Main navigation">
-          <ul className="flex items-center gap-8">
+        <nav aria-label="Main navigation" className="min-w-0 overflow-hidden">
+          <ul className="flex items-center gap-8 whitespace-nowrap">
             <li>
               <Link
                 href="#services"
@@ -60,7 +60,7 @@ export async function Header() {
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <LanguageSwitcher variant="minimal" />
           <Link
             href="/sign-in"

@@ -8,7 +8,7 @@ export async function HeroSection() {
   const t = getTranslations(locale)
 
   return (
-    <section className="py-24 md:py-36" style={{ backgroundColor: "#ffffff" }}>
+    <section className="py-24 md:py-36" style={{ backgroundColor: "#ffffff", borderBottom: "0.5px solid #e2e8f0" }}>
       <div className="container mx-auto px-6">
         <div className="mx-auto max-w-[760px] text-center">
           {/* Badge */}
@@ -20,7 +20,7 @@ export async function HeroSection() {
 
           {/* H1 */}
           <h1
-            className="font-display text-balance leading-tight tracking-tight"
+            className="font-display font-semibold text-balance leading-tight tracking-tight"
             style={{ fontSize: "clamp(40px, 5vw, 56px)", color: "#1a2744" }}
           >
             {t.landing.heroTitleMain}{" "}
@@ -43,7 +43,7 @@ export async function HeroSection() {
           {/* CTAs */}
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
-              href="/sign-up"
+              href="/free-scan"
               className="inline-flex items-center rounded-[14px] px-6 py-3 text-base font-semibold text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
               style={{ backgroundColor: "#0f7c6e" }}
             >

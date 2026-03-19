@@ -11,7 +11,8 @@ export async function Footer() {
   return (
     <footer style={{ backgroundColor: "#1a2744" }}>
       <div className="container mx-auto px-6 py-14">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-10 md:grid-cols-2 lg:[grid-template-columns:2fr_1fr_1fr_1fr]">
+
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">

@@ -25,7 +25,7 @@ export async function WhyChooseUsSection() {
   ]
 
   return (
-    <section className="py-20 md:py-28" style={{ backgroundColor: "#f9fafb" }}>
+    <section className="py-14 md:py-20" style={{ backgroundColor: "#f9fafb" }}>
       <div className="container mx-auto px-6">
         {/* Section label */}
         <div className="mb-4 text-center">
@@ -39,7 +39,7 @@ export async function WhyChooseUsSection() {
 
         {/* H2 */}
         <h2
-          className="font-display mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
+          className="font-display font-semibold mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
           style={{ color: "#1a2744" }}
         >
           {t.landing.whyChooseTitle}
@@ -54,7 +54,7 @@ export async function WhyChooseUsSection() {
               style={{ border: "0.5px solid #e2e8f0" }}
             >
               <div
-                className="font-display mb-4 text-5xl font-normal leading-none"
+                className="font-display mb-4 text-5xl font-semibold leading-none"
                 style={{ color: "#0f7c6e" }}
               >
                 {benefit.number}

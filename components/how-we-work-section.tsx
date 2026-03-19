@@ -31,7 +31,7 @@ export async function HowWeWorkSection() {
   ]
 
   return (
-    <section id="how-we-work" className="py-20 md:py-28" style={{ backgroundColor: "#ffffff" }}>
+    <section id="how-we-work" className="py-14 md:py-20" style={{ backgroundColor: "#ffffff" }}>
       <div className="container mx-auto px-6">
         {/* Section label */}
         <div className="mb-4 text-center">
@@ -45,16 +45,16 @@ export async function HowWeWorkSection() {
 
         {/* H2 */}
         <h2
-          className="font-display mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
+          className="font-display font-semibold mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
           style={{ color: "#1a2744" }}
         >
           {t.landing.howWeWorkTitle}
         </h2>
 
         {/* Steps */}
-        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           {steps.map((step, index) => (
-            <div key={index} className="flex flex-col items-center text-center">
+            <div key={index} className="flex min-w-0 flex-col items-center text-center">
               {/* Step number + icon */}
               <div
                 className="mb-5 flex h-16 w-16 items-center justify-center rounded-full"

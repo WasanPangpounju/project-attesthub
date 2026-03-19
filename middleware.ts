@@ -5,7 +5,10 @@ import { LOCALE_COOKIE, locales, defaultLocale } from './lib/i18n/config';
 const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
-  '/sign-up(.*)'
+  '/sign-up(.*)',
+  '/free-scan',
+  '/free-scan/(.*)',
+  '/api/guest-scan/(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

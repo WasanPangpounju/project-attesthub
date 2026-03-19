@@ -26,7 +26,7 @@ export async function ServicesSection() {
   ]
 
   return (
-    <section id="services" className="py-20 md:py-28" style={{ backgroundColor: "#f9fafb" }}>
+    <section id="services" className="py-14 md:py-20" style={{ backgroundColor: "#f9fafb" }}>
       <div className="container mx-auto px-6">
         {/* Section label */}
         <div className="mb-4 text-center">
@@ -40,18 +40,18 @@ export async function ServicesSection() {
 
         {/* H2 */}
         <h2
-          className="font-display mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
+          className="font-display font-semibold mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
           style={{ color: "#1a2744" }}
         >
           {t.landing.servicesTitle}
         </h2>
 
         {/* Cards */}
-        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 md:grid-cols-3">
           {services.map((service, index) => (
             <div
               key={index}
-              className="group rounded-[14px] bg-white p-8 transition-shadow hover:shadow-md"
+              className="group min-w-0 rounded-[14px] bg-white p-8 transition-shadow hover:shadow-md"
               style={{ border: "0.5px solid #e2e8f0" }}
             >
               <div

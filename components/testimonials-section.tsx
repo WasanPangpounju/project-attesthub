@@ -28,7 +28,7 @@ export async function TestimonialsSection() {
   ]
 
   return (
-    <section id="testimonials" className="py-20 md:py-28" style={{ backgroundColor: "#ffffff" }}>
+    <section id="testimonials" className="py-14 md:py-20" style={{ backgroundColor: "#ffffff" }}>
       <div className="container mx-auto px-6">
         {/* Section label */}
         <div className="mb-4 text-center">
@@ -42,7 +42,7 @@ export async function TestimonialsSection() {
 
         {/* H2 */}
         <h2
-          className="font-display mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
+          className="font-display font-semibold mx-auto max-w-2xl text-balance text-center text-3xl leading-tight md:text-4xl"
           style={{ color: "#1a2744" }}
         >
           {t.landing.testimonialsTitle}
@@ -53,7 +53,7 @@ export async function TestimonialsSection() {
           {testimonials.map((testimonial, index) => (
             <div
               key={index}
-              className="flex flex-col rounded-[14px] bg-white p-8"
+              className="flex min-w-0 flex-col rounded-[14px] bg-white p-8"
               style={{ border: "0.5px solid #e2e8f0" }}
             >
               {/* Stars */}

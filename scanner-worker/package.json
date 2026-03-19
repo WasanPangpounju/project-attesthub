@@ -1,0 +1,25 @@
+{
+  "name": "attesthub-scanner-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BullMQ worker for guest free-scan (Playwright + axe-core + Claude AI)",
+  "scripts": {
+    "dev": "tsx index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.51.0",
+    "axe-core": "^4.10.3",
+    "bullmq": "^5.70.4",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.10.0",
+    "mongoose": "^9.1.2",
+    "playwright": "^1.50.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4.19.3",
+    "typescript": "^5"
+  }
+}
