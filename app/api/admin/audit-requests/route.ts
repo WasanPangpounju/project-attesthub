@@ -2,26 +2,21 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import dbConnect from "@/lib/mongodb";
 import AuditRequest from "@/models/audit-request";
-
-function getRole(sessionClaims: any) {
-  return (
-    sessionClaims?.metadata?.role ||
-    sessionClaims?.publicMetadata?.role ||
-    sessionClaims?.privateMetadata?.role
-  );
-}
+import User from "@/models/User";
 
 export const runtime = "nodejs"
 
 export async function GET() {
   try {
-    const { userId, sessionClaims } = await auth();
+    const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (getRole(sessionClaims) !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     await dbConnect();
+
+    const user = await User.findOne({ clerkUserId: userId }).lean();
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const items = await AuditRequest.find({}).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ items });
