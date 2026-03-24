@@ -13,7 +13,7 @@ export async function GET() {
 
     await connectToDatabase()
 
-    const requests = await AuditRequest.find({ requestedBy: userId }).sort({ createdAt: -1 }).lean()
+    const requests = await AuditRequest.find({ customerId: userId }).sort({ createdAt: -1 }).lean()
 
     return NextResponse.json({ data: requests }, { status: 200 })
   } catch (err) {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const newRequest = await AuditRequest.create({
       ...body,
-      requestedBy: userId,
+      customerId: userId,
     })
 
     return NextResponse.json({ data: newRequest }, { status: 201 })
