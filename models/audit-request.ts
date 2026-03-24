@@ -71,7 +71,7 @@ export interface IAuditRequest {
 
   // ✅ ราคา/ค่าจ้าง ให้ tester เห็นตอนกดรับงาน
   // แนะนำเก็บเป็นหน่วยเล็กสุด (เช่น สตางค์) เพื่อไม่เจอปัญหาทศนิยม
-  priceAmount: number; // เช่น 150000 = 1,500.00 THB ถ้าใช้ satang
+  priceAmount?: number; // เช่น 150000 = 1,500.00 THB ถ้าใช้ satang — set by admin, not customer
   priceCurrency: "THB" | "USD"; // จะใช้แค่ THB ก็ได้
   priceNote?: string; // รายละเอียดราคา/ขอบเขต
 
@@ -194,7 +194,7 @@ const AuditRequestSchema = new Schema<IAuditRequest>(
     files: [{ name: String, size: Number, type: String }],
 
     // ✅ ราคา (required)
-    priceAmount: { type: Number, required: true, min: 0 },
+    priceAmount: { type: Number, min: 0 },
     priceCurrency: { type: String, enum: ["THB", "USD"], default: "THB" },
     priceNote: { type: String, default: "" },
 
