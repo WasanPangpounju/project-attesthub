@@ -28,7 +28,39 @@ export async function TestimonialsSection() {
   ]
 
   return (
-    <section id="testimonials" className="py-14 md:py-20" style={{ backgroundColor: "#ffffff" }}>
+    <section id="testimonials" className="py-14 md:py-20" style={{ backgroundColor: "#FAFAF8" }}>
+      <style>{`
+        .speech-bubble {
+          position: relative;
+          background: #FFFFFF;
+          border-radius: 16px;
+          padding: 1.5rem;
+          border: 1.5px solid #e2e8f0;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .speech-bubble::before {
+          content: "";
+          position: absolute;
+          bottom: -14px;
+          left: 10px;
+          width: 0;
+          height: 0;
+          border-left: 14px solid transparent;
+          border-right: 14px solid transparent;
+          border-top: 14px solid #e2e8f0;
+        }
+        .speech-bubble::after {
+          content: "";
+          position: absolute;
+          bottom: -12px;
+          left: 10px;
+          width: 0;
+          height: 0;
+          border-left: 12px solid transparent;
+          border-right: 12px solid transparent;
+          border-top: 12px solid #FFFFFF;
+        }
+      `}</style>
       <div className="container mx-auto px-6">
         {/* Section label */}
         <div className="mb-4 text-center">
@@ -51,27 +83,16 @@ export async function TestimonialsSection() {
         {/* Cards */}
         <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((testimonial, index) => (
-            <div
-              key={index}
-              className="flex min-w-0 flex-col rounded-[14px] bg-white p-8"
-              style={{ border: "0.5px solid #e2e8f0" }}
-            >
-              {/* Stars */}
-              <div className="mb-4 flex gap-0.5" aria-label="5 out of 5 stars">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <span key={i} aria-hidden="true" style={{ color: "#c9932a", fontSize: "16px" }}>
-                    ★
-                  </span>
-                ))}
+            <div key={index} className="min-w-0">
+              {/* Speech bubble */}
+              <div className="speech-bubble">
+                <blockquote className="text-sm italic leading-relaxed" style={{ color: "#5a6478" }}>
+                  &ldquo;{testimonial.quote}&rdquo;
+                </blockquote>
               </div>
 
-              {/* Quote */}
-              <blockquote className="flex-1 text-sm italic leading-relaxed" style={{ color: "#5a6478" }}>
-                &ldquo;{testimonial.quote}&rdquo;
-              </blockquote>
-
-              {/* Author */}
-              <div className="mt-6 flex items-center gap-3">
+              {/* Author row — below the bubble */}
+              <div style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "12px" }}>
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
                   style={{ backgroundColor: "#0f7c6e" }}
@@ -80,11 +101,11 @@ export async function TestimonialsSection() {
                   {testimonial.initials}
                 </div>
                 <div>
-                  <div className="text-sm font-semibold" style={{ color: "#1a2744" }}>
+                  <div style={{ fontWeight: 500, color: "#1a2744", fontSize: "0.875rem" }}>
                     {testimonial.author}
                   </div>
-                  <div className="text-xs" style={{ color: "#5a6478" }}>
-                    {testimonial.role}
+                  <div aria-label="5 out of 5 stars" style={{ color: "#F5C518", fontSize: "14px" }}>
+                    ★★★★★
                   </div>
                 </div>
               </div>

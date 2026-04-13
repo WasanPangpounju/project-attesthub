@@ -9,7 +9,7 @@ export async function Footer() {
   const t = getTranslations(locale)
 
   return (
-    <footer style={{ backgroundColor: "#1a2744" }}>
+    <footer style={{ backgroundColor: "#0a2e28" }}>
       <div className="container mx-auto px-6 py-14">
         <div className="grid gap-10 md:grid-cols-2 lg:[grid-template-columns:2fr_1fr_1fr_1fr]">
 
@@ -19,14 +19,14 @@ export async function Footer() {
               <ShieldCheck className="h-5 w-5" style={{ color: "#13a08e" }} aria-hidden="true" />
               <span className="text-base font-bold text-white">Attesthub</span>
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
+            <p className="leading-relaxed" style={{ fontSize: "13px", color: "rgba(255,255,255,0.55)" }}>
               {t.landing.footerTagline}
             </p>
           </div>
 
           {/* Quick Links */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-white">
+            <h3 className="font-semibold uppercase tracking-widest text-white" style={{ fontSize: "14px" }}>
               {t.landing.footerQuickLinks}
             </h3>
             <nav aria-label="Footer quick links">
@@ -34,8 +34,8 @@ export async function Footer() {
                 <li>
                   <Link
                     href="#services"
-                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
-                    style={{ color: "rgba(255,255,255,0.55)" }}
+                    className="transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)" }}
                   >
                     {t.landing.footerServices}
                   </Link>
@@ -43,8 +43,8 @@ export async function Footer() {
                 <li>
                   <Link
                     href="#how-we-work"
-                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
-                    style={{ color: "rgba(255,255,255,0.55)" }}
+                    className="transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)" }}
                   >
                     {t.landing.footerHowWeWork}
                   </Link>
@@ -52,8 +52,8 @@ export async function Footer() {
                 <li>
                   <Link
                     href="#testimonials"
-                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
-                    style={{ color: "rgba(255,255,255,0.55)" }}
+                    className="transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)" }}
                   >
                     {t.landing.footerTestimonials}
                   </Link>
@@ -64,7 +64,7 @@ export async function Footer() {
 
           {/* Legal */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-white">
+            <h3 className="font-semibold uppercase tracking-widest text-white" style={{ fontSize: "14px" }}>
               {t.landing.footerLegal}
             </h3>
             <nav aria-label="Legal navigation">
@@ -72,8 +72,8 @@ export async function Footer() {
                 <li>
                   <Link
                     href="/about"
-                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
-                    style={{ color: "rgba(255,255,255,0.55)" }}
+                    className="transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)" }}
                   >
                     {t.landing.footerAbout}
                   </Link>
@@ -81,8 +81,8 @@ export async function Footer() {
                 <li>
                   <Link
                     href="/contact"
-                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
-                    style={{ color: "rgba(255,255,255,0.55)" }}
+                    className="transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)" }}
                   >
                     {t.landing.footerContact}
                   </Link>
@@ -90,8 +90,8 @@ export async function Footer() {
                 <li>
                   <Link
                     href="/privacy"
-                    className="text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
-                    style={{ color: "rgba(255,255,255,0.55)" }}
+                    className="transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)" }}
                   >
                     {t.landing.footerPrivacy}
                   </Link>
@@ -102,7 +102,7 @@ export async function Footer() {
 
           {/* Connect */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-white">
+            <h3 className="font-semibold uppercase tracking-widest text-white" style={{ fontSize: "14px" }}>
               {t.landing.footerConnect}
             </h3>
             <div className="flex gap-3">
@@ -150,8 +150,8 @@ export async function Footer() {
 
         {/* Bottom bar */}
         <div
-          className="mt-12 pt-8 text-center text-xs"
-          style={{ borderTop: "0.5px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)" }}
+          className="mt-12 pt-8 text-center"
+          style={{ fontSize: "12px", borderTop: "0.5px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }}
         >
           {t.landing.footerCopyright}
         </div>

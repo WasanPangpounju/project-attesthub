@@ -35,6 +35,7 @@ export function LanguageSwitcher({ variant = "minimal" }: Props) {
         onClick={() => handleChange(locale === "en" ? "th" : "en")}
         disabled={loading}
         className="gap-1 text-sm font-medium"
+        style={{ color: "rgba(255,255,255,0.85)" }}
         aria-label="Switch language"
       >
         {loading ? "..." : locale === "en" ? "🇹🇭 TH" : "🇬🇧 EN"}

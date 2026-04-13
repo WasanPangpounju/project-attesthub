@@ -25,7 +25,7 @@ export async function WhyChooseUsSection() {
   ]
 
   return (
-    <section className="py-14 md:py-20" style={{ backgroundColor: "#f9fafb" }}>
+    <section className="py-14 md:py-20" style={{ backgroundColor: "#f0f8f5" }}>
       <div className="container mx-auto px-6">
         {/* Section label */}
         <div className="mb-4 text-center">
@@ -50,12 +50,12 @@ export async function WhyChooseUsSection() {
           {benefits.map((benefit) => (
             <div
               key={benefit.number}
-              className="rounded-[14px] bg-white p-8 transition-shadow hover:shadow-md"
-              style={{ border: "0.5px solid #e2e8f0" }}
+              className="rounded-[14px] p-8 transition-shadow hover:shadow-md"
+              style={{ backgroundColor: "#FAFAF8", border: "0.5px solid #e2e8f0" }}
             >
               <div
                 className="font-display mb-4 text-5xl font-semibold leading-none"
-                style={{ color: "#0f7c6e" }}
+                style={{ color: "#0f7c6e", background: '#FEF9C3', display: 'inline-block', padding:'6px',borderRadius: '25%' }}
               >
                 {benefit.number}
               </div>

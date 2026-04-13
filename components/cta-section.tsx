@@ -8,39 +8,37 @@ export async function CtaSection() {
   const t = getTranslations(locale)
 
   return (
-    <section id="contact" className="py-14 md:py-20" style={{ backgroundColor: "#f9fafb" }}>
-      <div className="container mx-auto px-6">
-        <div
-          className="mx-auto max-w-3xl px-8 py-16 text-center md:px-16 md:py-20"
-          style={{ backgroundColor: "#1a2744", borderRadius: "18px" }}
+    <section
+      id="contact"
+      style={{ width: "100%", padding: "5rem 2rem", backgroundColor: "#1A7A6E", textAlign: "center" }}
+    >
+      <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+        <h2
+          className="font-display font-semibold text-balance text-3xl leading-tight text-white md:text-4xl"
         >
-          <h2
-            className="font-display font-semibold text-balance text-3xl leading-tight text-white md:text-4xl"
+          {t.landing.ctaTitle}
+        </h2>
+        <p
+          className="mt-6 text-pretty text-lg leading-relaxed"
+          style={{ color: "rgba(255,255,255,0.7)" }}
+        >
+          {t.landing.ctaSubtext}
+        </p>
+        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <Link
+            href="mailto:contact@attesthub.com"
+            className="inline-flex items-center rounded-[14px] px-6 py-3 text-base font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+            style={{ backgroundColor: "#FAFAF8", color: "#1a2744" }}
           >
-            {t.landing.ctaTitle}
-          </h2>
-          <p
-            className="mt-6 text-pretty text-lg leading-relaxed"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            {t.landing.ctaButton1}
+          </Link>
+          <Link
+            href="tel:+1234567890"
+            className="inline-flex items-center rounded-[14px] px-6 py-3 text-base font-semibold text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
+            style={{ border: "1px solid rgba(255,255,255,0.5)" }}
           >
-            {t.landing.ctaSubtext}
-          </p>
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link
-              href="mailto:contact@attesthub.com"
-              className="inline-flex items-center rounded-[14px] px-6 py-3 text-base font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
-              style={{ backgroundColor: "#ffffff", color: "#1a2744" }}
-            >
-              {t.landing.ctaButton1}
-            </Link>
-            <Link
-              href="tel:+1234567890"
-              className="inline-flex items-center rounded-[14px] px-6 py-3 text-base font-semibold text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-4"
-              style={{ border: "1px solid rgba(255,255,255,0.5)" }}
-            >
-              {t.landing.ctaButton2}
-            </Link>
-          </div>
+            {t.landing.ctaButton2}
+          </Link>
         </div>
       </div>
     </section>
