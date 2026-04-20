@@ -25,6 +25,7 @@ async function main() {
   }) as unknown as ConnectionOptions;
 
   // ── BullMQ Worker ────────────────────────────────────────
+  // concurrency=1: Chromium กิน CPU สูง บน 2 vCPU รัน 2 ตัวพร้อมกันเกิน 100%
   const worker = new Worker<GuestScanJobData>(
     'guest-scan',
     async (job) => {
@@ -34,8 +35,8 @@ async function main() {
     },
     {
       connection,
-      lockDuration: 300_000, // 5 นาที (รองรับ scan ที่ใช้เวลานาน)
-      concurrency: 2,
+      lockDuration: 300_000,
+      concurrency: 1,
     }
   );
 
@@ -53,16 +54,15 @@ async function main() {
 
   console.log('[worker] guest-scan worker started, waiting for jobs...');
 
-  // Graceful shutdown (commented out temporarily — was causing worker to exit after first job)
-  // async function shutdown() {
-  //   console.log('[worker] shutting down...');
-  //   await worker.close();
-  //   await mongoose.disconnect();
-  //   process.exit(0);
-  // }
-  //
-  // process.on('SIGTERM', shutdown);
-  // process.on('SIGINT', shutdown);
+  async function shutdown() {
+    console.log('[worker] shutting down...');
+    await worker.close();
+    await mongoose.disconnect();
+    process.exit(0);
+  }
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 main().catch((err) => {

@@ -75,14 +75,40 @@ export async function runGuestScan(reportId: string): Promise<void> {
     // 2. Normalize URL
     const url = normalizeUrl(report.url);
 
-    // 3. Launch Playwright (headless)
-    browser = await chromium.launch({ headless: true });
+    // 3. Launch Playwright (headless) — flags เพื่อลด CPU/RAM บน server 2vCPU
+    browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',   // ป้องกัน crash บน Linux RAM น้อย
+        '--disable-gpu',
+        '--disable-background-networking',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-extensions',
+        '--disable-sync',
+        '--mute-audio',
+        '--no-first-run',
+        '--js-flags=--max-old-space-size=512',  // จำกัด JS heap 512 MB
+      ],
+    });
     const context = await browser.newContext({
       userAgent:
         'Mozilla/5.0 (compatible; AttestHubBot/1.0; +https://attesthub.com/bot)',
     });
-    const page = await context.newPage();
 
+    // block image/media/font — axe-core ไม่ต้องการ (CSS ยังโหลดเพื่อ contrast check)
+    await context.route('**/*', (route) => {
+      const type = route.request().resourceType();
+      if (['image', 'media', 'font'].includes(type)) {
+        return route.abort();
+      }
+      return route.continue();
+    });
+
+    const page = await context.newPage();
     await page.goto(url, { timeout: 30_000, waitUntil: 'domcontentloaded' });
 
     // 4. Inject axe-core
