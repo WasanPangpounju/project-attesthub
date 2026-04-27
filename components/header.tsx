@@ -14,13 +14,13 @@ export async function Header() {
       className="sticky top-0 z-50 w-full "
       style={{  background: "#0f7c6e" }}
     >
-      <div className="container mx-auto flex h-16 items-center justify-between px-6">
+      <div className="flex h-16 w-full items-center justify-between px-6">
         {/* Logo */}
         <Link
           href="/"
           className="flex shrink-0 items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
         >
-          <ShieldCheck className="h-6 w-6" style={{ color: "#0f7c6e" }} aria-hidden="true" />
+          <ShieldCheck className="h-6 w-6" style={{ color: "#ffffff" }} aria-hidden="true" />
           <span className="text-lg font-bold" style={{ color: "#ffffff" }}>
             Attesthub
           </span>
@@ -72,7 +72,7 @@ export async function Header() {
           <Link
             href="/sign-up"
             className="inline-flex items-center rounded-[14px] px-4 py-2 text-sm font-semibold  transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-            style={{ backgroundColor: "#fafafa", border: "1px solid #eaeaea", color :'currentColor'}}
+            style={{ backgroundColor: "#fafafa", border: "1px solid #eaeaea", color: "#1a2744" }}
           >
             {t.nav.getStarted}
           </Link>

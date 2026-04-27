@@ -110,6 +110,18 @@ const th: Translations = {
     footerPrivacy: "Privacy Policy",
     footerCopyright: "© 2026 Attesthub. All rights reserved.",
   },
+  signUpIntro: {
+    badge: "Web Accessibility Audit",
+    title: "ตรวจสอบและพัฒนา\nความ Accessible ของเว็บคุณ",
+    description: "Attesthub เชื่อมโยงเจ้าของเว็บกับทีมผู้เชี่ยวชาญด้าน Accessibility เพื่อตรวจสอบตามมาตรฐาน WCAG 2.1 พร้อมรายงานและแนวทางแก้ไขที่ชัดเจน",
+    feature1: "สแกนเว็บไซต์ตามมาตรฐาน WCAG 2.1 โดยผู้เชี่ยวชาญจริง",
+    feature2: "รับรายงานละเอียด พร้อมลำดับความสำคัญและวิธีแก้ไข",
+    feature3: "ทีม Tester คัดสรรแล้ว ครอบคลุมทั้ง manual และ automated testing",
+    ctaButton: "สมัครใช้งานฟรี",
+    ctaNote: "ไม่มีค่าใช้จ่ายในการสมัคร • ยกเลิกได้ทุกเมื่อ",
+    alreadyHaveAccount: "มีบัญชีอยู่แล้ว?",
+    signIn: "เข้าสู่ระบบ",
+  },
 }
 
 export default th

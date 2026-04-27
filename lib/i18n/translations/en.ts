@@ -108,6 +108,18 @@ const en = {
     footerPrivacy: "Privacy Policy",
     footerCopyright: "© 2026 Attesthub. All rights reserved.",
   },
+  signUpIntro: {
+    badge: "Web Accessibility Audit",
+    title: "Audit and Improve\nYour Website's Accessibility",
+    description: "Attesthub connects website owners with accessibility experts to audit against WCAG 2.1 standards, with clear reports and actionable recommendations.",
+    feature1: "Website scanning against WCAG 2.1 standards by real experts",
+    feature2: "Detailed report with prioritized issues and fixes",
+    feature3: "Vetted tester team covering both manual and automated testing",
+    ctaButton: "Sign Up Free",
+    ctaNote: "No cost to register • Cancel anytime",
+    alreadyHaveAccount: "Already have an account?",
+    signIn: "Sign in",
+  },
 } as const
 
 export default en
