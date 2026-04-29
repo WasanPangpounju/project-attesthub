@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTranslation } from "@/lib/i18n/useTranslation"
 import type { Locale } from "@/lib/i18n/config"
+import { cn } from "@/lib/utils"
 
 interface Props {
   variant?: "minimal" | "full"
+  className?: string
 }
 
-export function LanguageSwitcher({ variant = "minimal" }: Props) {
+export function LanguageSwitcher({ variant = "minimal", className }: Props) {
   const { locale, setLocale } = useTranslation()
   const [loading, setLoading] = useState(false)
 
@@ -34,7 +36,7 @@ export function LanguageSwitcher({ variant = "minimal" }: Props) {
         size="sm"
         onClick={() => handleChange(locale === "en" ? "th" : "en")}
         disabled={loading}
-        className="gap-1 text-sm font-medium"
+        className={cn("gap-1 text-sm font-medium", className)}
         style={{ color: "rgba(255,255,255,0.85)" }}
         aria-label="Switch language"
       >
@@ -46,7 +48,7 @@ export function LanguageSwitcher({ variant = "minimal" }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" disabled={loading} className="gap-1.5">
+        <Button variant="ghost" size="sm" disabled={loading} className={cn("gap-1.5", className)}>
           {loading ? "..." : locale === "en" ? "🇬🇧 EN" : "🇹🇭 TH"}
         </Button>
       </DropdownMenuTrigger>

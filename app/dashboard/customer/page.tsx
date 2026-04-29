@@ -1,11 +1,14 @@
-'use client';
+'use client'
 
-import { RoleGuard } from '@/components/role-guard';
-import { DashboardSidebar } from '@/components/dashboard-sidebar';
-import { DashboardHeader } from '@/components/dashboard-header';
-import { ProjectsList } from '@/components/projects-list';
+import { RoleGuard } from '@/components/role-guard'
+import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { DashboardHeader } from '@/components/dashboard-header'
+import { ProjectsList } from '@/components/projects-list'
+import { useTranslation } from '@/lib/i18n/useTranslation'
 
 export default function CustomerDashboard() {
+  const { t } = useTranslation()
+
   return (
     <RoleGuard allowedRoles={['customer']}>
       <div className="flex min-h-screen bg-background">
@@ -14,13 +17,13 @@ export default function CustomerDashboard() {
           <DashboardHeader />
           <main className="flex-1 p-6 lg:p-8">
             <div className="mb-6">
-              <h1 className="text-3xl font-bold">Customer Dashboard</h1>
-              <p className="text-muted-foreground">Manage your audit requests and projects</p>
+              <h1 className="text-3xl font-bold">{t.customer.dashboard.title}</h1>
+              <p className="text-muted-foreground">{t.customer.dashboard.subtitle}</p>
             </div>
             <ProjectsList />
           </main>
         </div>
       </div>
     </RoleGuard>
-  );
+  )
 }

@@ -38,6 +38,7 @@ import {
   Copy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n/useTranslation"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -132,15 +133,6 @@ type ScenarioWithRecs = {
 
 const STATUS_STEPS: ProjectStatus[] = ["pending", "open", "in_review", "scheduled", "completed"]
 
-const STATUS_LABEL: Record<ProjectStatus, string> = {
-  pending: "Pending",
-  open: "Open",
-  in_review: "In Review",
-  scheduled: "Scheduled",
-  completed: "Completed",
-  cancelled: "Cancelled",
-}
-
 const STATUS_BADGE: Record<ProjectStatus, string> = {
   pending: "bg-muted text-muted-foreground",
   open: "bg-chart-1/20 text-chart-1",
@@ -148,27 +140,6 @@ const STATUS_BADGE: Record<ProjectStatus, string> = {
   scheduled: "bg-chart-3/20 text-chart-3",
   completed: "bg-chart-2/20 text-chart-2",
   cancelled: "bg-destructive/15 text-destructive",
-}
-
-const STEP_LABEL: Record<ProjectStatus, string> = {
-  pending: "Pending",
-  open: "Open",
-  in_review: "In Review",
-  scheduled: "Scheduled",
-  completed: "Done",
-  cancelled: "Cancelled",
-}
-
-const SERVICE_CATEGORY_LABEL: Record<string, string> = {
-  website: "Website",
-  mobile: "Mobile App",
-  physical: "Physical Space",
-}
-
-const SERVICE_PACKAGE_LABEL: Record<string, string> = {
-  automated: "Automated",
-  hybrid: "Hybrid",
-  expert: "Full Expert Review",
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -213,9 +184,20 @@ function formatFileSize(bytes: number): string {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StatusTimeline({ status }: { status: ProjectStatus }) {
+type CpT = ReturnType<typeof import("@/lib/i18n/useTranslation").useTranslation>["t"]["customerProject"]
+
+function StatusTimeline({ status, t }: { status: ProjectStatus; t: CpT }) {
   const isCancelled = status === "cancelled"
   const currentIdx = STATUS_STEPS.indexOf(status)
+
+  const STEP_LABEL: Record<ProjectStatus, string> = {
+    pending: t.stepPending,
+    open: t.stepOpen,
+    in_review: t.stepInReview,
+    scheduled: t.stepScheduled,
+    completed: t.stepDone,
+    cancelled: t.statusCancelled,
+  }
 
   return (
     <div className="flex items-center w-full overflow-x-auto pb-2">
@@ -256,17 +238,24 @@ function StatusTimeline({ status }: { status: ProjectStatus }) {
       {isCancelled && (
         <div className="ml-4 flex items-center gap-2 text-destructive flex-shrink-0">
           <XCircle className="h-4 w-4" aria-hidden="true" />
-          <span className="text-sm font-medium">Cancelled</span>
+          <span className="text-sm font-medium">{t.statusCancelled}</span>
         </div>
       )}
     </div>
   )
 }
 
-function ScenarioRow({ scenario }: { scenario: ScenarioWithSummary }) {
+function ScenarioRow({ scenario, t }: { scenario: ScenarioWithSummary; t: CpT }) {
   const [open, setOpen] = useState(false)
   const { resultSummary: rs, testCaseCount } = scenario
   const total = rs.pass + rs.fail + rs.skip + rs.pending
+
+  const stats = [
+    { label: t.scenarioStatPassed, value: rs.pass, icon: CheckCircle2, color: "text-chart-2" },
+    { label: t.scenarioStatFailed, value: rs.fail, icon: XCircle, color: "text-destructive" },
+    { label: t.scenarioStatSkipped, value: rs.skip, icon: MinusCircle, color: "text-muted-foreground" },
+    { label: t.scenarioStatPending, value: rs.pending, icon: Clock, color: "text-chart-4" },
+  ]
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -279,7 +268,7 @@ function ScenarioRow({ scenario }: { scenario: ScenarioWithSummary }) {
         <div className="flex-1 min-w-0">
           <p className="font-medium text-foreground truncate">{scenario.title}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Tester: {scenario.testerName} · {testCaseCount} test case{testCaseCount !== 1 ? "s" : ""}
+            {t.testerLabel} {scenario.testerName} · {testCaseCount} {testCaseCount !== 1 ? t.testCasePlural : t.testCaseSingular}
           </p>
         </div>
         <div className="flex items-center gap-3 ml-4 flex-shrink-0">
@@ -325,14 +314,7 @@ function ScenarioRow({ scenario }: { scenario: ScenarioWithSummary }) {
             <p className="text-sm text-muted-foreground mb-3">{scenario.description}</p>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {(
-              [
-                { label: "Passed", value: rs.pass, icon: CheckCircle2, color: "text-chart-2" },
-                { label: "Failed", value: rs.fail, icon: XCircle, color: "text-destructive" },
-                { label: "Skipped", value: rs.skip, icon: MinusCircle, color: "text-muted-foreground" },
-                { label: "Pending", value: rs.pending, icon: Clock, color: "text-chart-4" },
-              ] as const
-            ).map(({ label, value, icon: Icon, color }) => (
+            {stats.map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="bg-background rounded-md p-3 text-center border border-border">
                 <Icon className={cn("h-5 w-5 mx-auto mb-1", color)} aria-hidden="true" />
                 <p className="text-xl font-bold text-foreground">{value}</p>
@@ -376,6 +358,29 @@ function CommentBubble({ comment }: { comment: Comment }) {
 
 export default function CustomerProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const { t } = useTranslation()
+  const cp = t.customerProject
+
+  const STATUS_LABEL: Record<ProjectStatus, string> = {
+    pending: cp.statusLabelPending,
+    open: cp.statusLabelOpen,
+    in_review: cp.statusLabelInReview,
+    scheduled: cp.statusLabelScheduled,
+    completed: cp.statusLabelCompleted,
+    cancelled: cp.statusLabelCancelled,
+  }
+
+  const SERVICE_CATEGORY_LABEL: Record<string, string> = {
+    website: cp.categoryWebsite,
+    mobile: cp.categoryMobile,
+    physical: cp.categoryPhysical,
+  }
+
+  const SERVICE_PACKAGE_LABEL: Record<string, string> = {
+    automated: cp.packageAutomated,
+    hybrid: cp.packageHybrid,
+    expert: cp.packageExpert,
+  }
 
   const [project, setProject] = useState<AuditRequest | null>(null)
   const [scenarios, setScenarios] = useState<ScenarioWithSummary[]>([])
@@ -517,7 +522,7 @@ export default function CustomerProjectDetailPage() {
       const { data } = await res.json()
       setMembers(data)
       setMemberEmail("")
-      toast.success("Member added")
+      toast.success(cp.memberAdded)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to add member")
     } finally {
@@ -530,7 +535,7 @@ export default function CustomerProjectDetailPage() {
       const res = await fetch(`/api/customer/projects/${id}/members/${memberId}`, { method: "DELETE" })
       if (!res.ok) throw new Error("Failed to remove member")
       setMembers((prev) => prev.filter((m) => m.clerkUserId !== memberId))
-      toast.success("Member removed")
+      toast.success(cp.memberRemoved)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to remove member")
     }
@@ -543,7 +548,7 @@ export default function CustomerProjectDetailPage() {
       if (!res.ok) throw new Error("Failed")
       const { data } = await res.json()
       setProject((prev) => prev ? { ...prev, shareToken: data.token } : prev)
-      toast.success("Share link generated!")
+      toast.success(cp.shareGenerated)
     } catch { toast.error("Failed to generate share link") }
     finally { setGeneratingShare(false) }
   }
@@ -552,7 +557,7 @@ export default function CustomerProjectDetailPage() {
     try {
       await fetch(`/api/reports/${id}/share`, { method: "DELETE" })
       setProject((prev) => prev ? { ...prev, shareToken: undefined } : prev)
-      toast.success("Share link revoked")
+      toast.success(cp.revoke)
     } catch { toast.error("Failed to revoke") }
   }
 
@@ -573,7 +578,7 @@ export default function CustomerProjectDetailPage() {
       if (json.data) {
         setComments((prev) => [...prev, json.data])
         setCommentText("")
-        toast.success("Comment posted")
+        toast.success(cp.commentPosted)
       }
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Failed to post comment")
@@ -616,11 +621,11 @@ export default function CustomerProjectDetailPage() {
               <Button variant="ghost" size="sm" className="gap-2 mb-6" asChild>
                 <Link href="/dashboard/customer">
                   <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                  Back to projects
+                  {cp.backToProjects}
                 </Link>
               </Button>
               <Card className="p-8 text-center">
-                <p className="text-destructive font-medium">{projectError ?? "Project not found"}</p>
+                <p className="text-destructive font-medium">{projectError ?? cp.projectNotFound}</p>
               </Card>
             </main>
           </div>
@@ -648,18 +653,18 @@ export default function CustomerProjectDetailPage() {
               <Button variant="ghost" size="sm" className="gap-2 -ml-2" asChild>
                 <Link href="/dashboard/customer">
                   <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                  Back to projects
+                  {cp.backToProjects}
                 </Link>
               </Button>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/dashboard/reports/${id}/summary`}>
-                    <FileText className="h-4 w-4 mr-1" /> View Full Report
+                    <FileText className="h-4 w-4 mr-1" /> {cp.viewFullReport}
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/dashboard/reports/${id}/wcag`}>
-                    WCAG Report
+                    {cp.wcagReport}
                   </Link>
                 </Button>
               </div>
@@ -670,7 +675,7 @@ export default function CustomerProjectDetailPage() {
               {project.shareToken ? (
                 <>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground mb-1">Shareable link (no login required)</p>
+                    <p className="text-xs text-muted-foreground mb-1">{cp.shareableLinkLabel}</p>
                     <div className="flex items-center gap-2">
                       <code className="text-xs bg-muted rounded px-2 py-1 flex-1 truncate">
                         {typeof window !== "undefined" ? `${window.location.origin}/reports/shared/${project.shareToken}` : `/reports/shared/${project.shareToken}`}
@@ -679,9 +684,10 @@ export default function CustomerProjectDetailPage() {
                         size="sm"
                         variant="ghost"
                         className="h-7 shrink-0"
+                        aria-label={cp.copyLink}
                         onClick={() => {
                           navigator.clipboard.writeText(`${window.location.origin}/reports/shared/${project.shareToken}`)
-                          toast.success("Link copied!")
+                          toast.success(cp.linkCopied)
                         }}
                       >
                         <Copy className="h-3.5 w-3.5" />
@@ -694,7 +700,7 @@ export default function CustomerProjectDetailPage() {
                     className="text-destructive hover:bg-destructive/10 shrink-0"
                     onClick={handleRevokeShareLink}
                   >
-                    Revoke
+                    {cp.revoke}
                   </Button>
                 </>
               ) : (
@@ -706,7 +712,7 @@ export default function CustomerProjectDetailPage() {
                   className="gap-2"
                 >
                   {generatingShare ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-                  Generate Share Link
+                  {cp.generateShareLink}
                 </Button>
               )}
             </div>
@@ -728,13 +734,13 @@ export default function CustomerProjectDetailPage() {
                     {project.accessibilityStandard}
                   </Badge>
                   {project.priority && project.priority !== "normal" && (
-                    <Badge variant="outline" className="capitalize">{project.priority} priority</Badge>
+                    <Badge variant="outline" className="capitalize">{project.priority} {cp.priorityBadge}</Badge>
                   )}
                 </div>
 
                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
-                  <span>Submitted: {formatDate(project.createdAt)}</span>
-                  {project.dueDate && <span>Due: {formatDate(project.dueDate)}</span>}
+                  <span>{cp.submitted} {formatDate(project.createdAt)}</span>
+                  {project.dueDate && <span>{cp.due} {formatDate(project.dueDate)}</span>}
                 </div>
               </CardContent>
             </Card>
@@ -742,10 +748,10 @@ export default function CustomerProjectDetailPage() {
             {/* ── Section 2: Status Timeline ────────────────────────────────── */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Project Status</CardTitle>
+                <CardTitle className="text-base">{cp.projectStatus}</CardTitle>
               </CardHeader>
               <CardContent>
-                <StatusTimeline status={project.status} />
+                <StatusTimeline status={project.status} t={cp} />
               </CardContent>
             </Card>
 
@@ -759,7 +765,7 @@ export default function CustomerProjectDetailPage() {
                       <Users className="h-5 w-5 text-primary" aria-hidden="true" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Assigned Testers</p>
+                      <p className="text-sm text-muted-foreground">{cp.assignedTesters}</p>
                       <p className="text-2xl font-bold text-foreground">{activeTesters.length}</p>
                       {activeTesters.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
@@ -783,7 +789,7 @@ export default function CustomerProjectDetailPage() {
                       <BarChart className="h-5 w-5 text-primary" aria-hidden="true" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Overall Progress</p>
+                      <p className="text-sm text-muted-foreground">{cp.overallProgress}</p>
                       <p className="text-2xl font-bold text-foreground">{progress}%</p>
                       <div
                         className="mt-2 h-2 bg-muted rounded-full overflow-hidden"
@@ -811,7 +817,7 @@ export default function CustomerProjectDetailPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-muted-foreground mb-1">
-                        {project.serviceCategory === "physical" ? "Location" : "Target URL"}
+                        {project.serviceCategory === "physical" ? cp.location : cp.targetUrl}
                       </p>
                       {project.serviceCategory === "physical" ? (
                         <p className="text-sm text-foreground break-words">
@@ -839,7 +845,7 @@ export default function CustomerProjectDetailPage() {
             {/* ── Section 4: Test Cases Summary ─────────────────────────────── */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Test Cases Summary</CardTitle>
+                <CardTitle className="text-base">{cp.testCasesSummary}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {loadingScenarios ? (
@@ -849,10 +855,10 @@ export default function CustomerProjectDetailPage() {
                   </div>
                 ) : scenarios.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">
-                    No test scenarios have been assigned to this project yet.
+                    {cp.noScenariosYet}
                   </p>
                 ) : (
-                  scenarios.map((s) => <ScenarioRow key={s._id} scenario={s} />)
+                  scenarios.map((s) => <ScenarioRow key={s._id} scenario={s} t={cp} />)
                 )}
               </CardContent>
             </Card>
@@ -863,13 +869,13 @@ export default function CustomerProjectDetailPage() {
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <Lightbulb className="h-4 w-4 text-primary" aria-hidden="true" />
-                    <CardTitle className="text-base">Expert Recommendations</CardTitle>
+                    <CardTitle className="text-base">{cp.expertRecommendations}</CardTitle>
                   </div>
                   {scenariosWithRecs.length > 0 && (
                     <CardDescription>
                       {scenariosWithRecs.reduce((sum, s) =>
                         sum + s.testCases.reduce((tSum, tc) => tSum + tc.recommendations.length, 0), 0
-                      )} recommendation(s) across {scenariosWithRecs.length} scenario(s)
+                      )} {cp.recommendationsAcrossScenarios} {scenariosWithRecs.length} {cp.scenariosCount}
                     </CardDescription>
                   )}
                 </CardHeader>
@@ -897,12 +903,12 @@ export default function CustomerProjectDetailPage() {
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-foreground truncate">{s.scenarioTitle}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">
-                                {totalRecs} recommendation{totalRecs !== 1 ? "s" : ""}
+                                {totalRecs} {totalRecs !== 1 ? cp.recommendationPlural : cp.recommendationSingular}
                                 {critCount > 0 && (
-                                  <span className="ml-2 text-red-700 font-medium">{critCount} critical</span>
+                                  <span className="ml-2 text-red-700 font-medium">{critCount} {cp.criticalLabel}</span>
                                 )}
                                 {highCount > 0 && (
-                                  <span className="ml-2 text-orange-700 font-medium">{highCount} high</span>
+                                  <span className="ml-2 text-orange-700 font-medium">{highCount} {cp.highLabel}</span>
                                 )}
                               </p>
                             </div>
@@ -932,13 +938,13 @@ export default function CustomerProjectDetailPage() {
                                         <p className="text-sm text-muted-foreground">{rec.description}</p>
                                         <div>
                                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                                            How to Fix
+                                            {cp.howToFix}
                                           </p>
                                           <p className="text-sm text-foreground whitespace-pre-wrap">{rec.howToFix}</p>
                                         </div>
                                         {rec.technique && (
                                           <p className="text-xs text-muted-foreground">
-                                            <span className="font-semibold">Technique:</span> {rec.technique}
+                                            <span className="font-semibold">{cp.techniqueLabel}</span> {rec.technique}
                                           </p>
                                         )}
                                         {rec.referenceUrl && (
@@ -977,12 +983,12 @@ export default function CustomerProjectDetailPage() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" aria-hidden="true" />
-                  Comments ({comments.length})
+                  {cp.commentsTitle} ({comments.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {comments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No comments yet. Be the first to leave one.</p>
+                  <p className="text-sm text-muted-foreground">{cp.noCommentsYet}</p>
                 ) : (
                   <div className="space-y-4">
                     {comments.map((c, i) => (
@@ -997,7 +1003,7 @@ export default function CustomerProjectDetailPage() {
                 <div className="space-y-2">
                   <Textarea
                     ref={commentInputRef}
-                    placeholder="Write a comment or question..."
+                    placeholder={cp.commentPlaceholder}
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     rows={3}
@@ -1010,7 +1016,7 @@ export default function CustomerProjectDetailPage() {
                     }}
                   />
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">Ctrl+Enter to submit</p>
+                    <p className="text-xs text-muted-foreground">{cp.ctrlEnterHint}</p>
                     <Button
                       size="sm"
                       className="gap-2"
@@ -1018,7 +1024,7 @@ export default function CustomerProjectDetailPage() {
                       disabled={submittingComment || !commentText.trim()}
                     >
                       <Send className="h-4 w-4" aria-hidden="true" />
-                      {submittingComment ? "Posting..." : "Post Comment"}
+                      {submittingComment ? cp.posting : cp.postComment}
                     </Button>
                   </div>
                 </div>
@@ -1030,10 +1036,10 @@ export default function CustomerProjectDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Team Access
+                  {cp.teamAccess}
                 </CardTitle>
                 <CardDescription>
-                  Add team members from your organization who can view this project and its reports
+                  {cp.teamAccessDescription}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1041,22 +1047,22 @@ export default function CustomerProjectDetailPage() {
                 <div className="flex gap-2">
                   <Input
                     type="email"
-                    placeholder="colleague@company.com"
+                    placeholder={cp.memberEmailPlaceholder}
                     value={memberEmail}
                     onChange={(e) => setMemberEmail(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleAddMember() }}
                   />
                   <Button onClick={handleAddMember} disabled={addingMember} className="gap-2 shrink-0">
                     {addingMember ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-                    Add
+                    {addingMember ? cp.addingMember : cp.addMember}
                   </Button>
                 </div>
 
                 {/* Member list */}
                 {members.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No additional members yet.</p>
+                  <p className="text-sm text-muted-foreground">{cp.noMembersYet}</p>
                 ) : (
-                  <ul className="space-y-2" aria-label="Team members">
+                  <ul className="space-y-2" aria-label={cp.teamMembersAriaLabel}>
                     {members.map((member) => (
                       <li key={member.clerkUserId} className="flex items-center gap-3 py-2 border-b last:border-0">
                         <Avatar className="h-8 w-8">
@@ -1073,7 +1079,7 @@ export default function CustomerProjectDetailPage() {
                           <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                         </div>
                         {member.clerkUserId === project.customerId ? (
-                          <Badge variant="secondary" className="text-xs">Owner</Badge>
+                          <Badge variant="secondary" className="text-xs">{cp.ownerBadge}</Badge>
                         ) : (
                           <Button
                             variant="ghost"
@@ -1099,7 +1105,7 @@ export default function CustomerProjectDetailPage() {
                 onClick={() => setDetailsOpen((o) => !o)}
                 aria-expanded={detailsOpen}
               >
-                <CardTitle className="text-base">Submitted Project Details</CardTitle>
+                <CardTitle className="text-base">{cp.submittedProjectDetails}</CardTitle>
                 {detailsOpen ? (
                   <ChevronUp className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 ) : (
@@ -1113,7 +1119,7 @@ export default function CustomerProjectDetailPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                        Service Category
+                        {cp.detailServiceCategory}
                       </p>
                       <p className="text-sm text-foreground">
                         {SERVICE_CATEGORY_LABEL[project.serviceCategory]}
@@ -1121,7 +1127,7 @@ export default function CustomerProjectDetailPage() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                        Service Package
+                        {cp.detailServicePackage}
                       </p>
                       <p className="text-sm text-foreground">
                         {SERVICE_PACKAGE_LABEL[project.servicePackage]}
@@ -1129,13 +1135,13 @@ export default function CustomerProjectDetailPage() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                        Accessibility Standard
+                        {cp.detailAccessibilityStandard}
                       </p>
                       <p className="text-sm text-foreground uppercase">{project.accessibilityStandard}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                        Devices
+                        {cp.detailDevices}
                       </p>
                       <div className="flex flex-wrap gap-1">
                         {project.devices.length > 0
@@ -1150,7 +1156,7 @@ export default function CustomerProjectDetailPage() {
                     {project.specialInstructions && (
                       <div className="sm:col-span-2">
                         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                          Special Instructions
+                          {cp.detailSpecialInstructions}
                         </p>
                         <p className="text-sm text-foreground whitespace-pre-wrap">
                           {project.specialInstructions}
@@ -1163,7 +1169,7 @@ export default function CustomerProjectDetailPage() {
                   {project.files && project.files.length > 0 && (
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
-                        Submitted Files
+                        {cp.detailSubmittedFiles}
                       </p>
                       <div className="space-y-2">
                         {project.files.map((f, i) => (

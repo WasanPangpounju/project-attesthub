@@ -10,6 +10,7 @@ import {
   FolderOpen, FileBarChart, FileText, ClipboardList, LayoutDashboard, Users,
 } from "lucide-react"
 import { UserButton, useUser, SignOutButton } from "@clerk/nextjs"
+import { useTranslation } from "@/lib/i18n/useTranslation"
 
 type NavItem = {
   title: string
@@ -24,6 +25,8 @@ export function DashboardSidebar() {
   const [role, setRole] = useState<string | null>(null)
   const [roleLoading, setRoleLoading] = useState(true)
   const [pendingProfileCount, setPendingProfileCount] = useState(0)
+  const { t } = useTranslation()
+  const s = t.dashboard
 
   useEffect(() => {
     fetch("/api/profile", { cache: "no-store" })
@@ -44,21 +47,21 @@ export function DashboardSidebar() {
 
   const navItems: NavItem[] = (() => {
     if (role === "customer") return [
-      { title: "My Projects", href: "/dashboard/customer", icon: FolderOpen },
-      { title: "New Audit Request", href: "/dashboard/customer/new-project", icon: FileText },
-      { title: "My Reports", href: "/dashboard/reports", icon: FileBarChart },
-      { title: "My Profile", href: "/dashboard/profile", icon: UserCircle },
+      { title: s.nav.myProjects, href: "/dashboard/customer", icon: FolderOpen },
+      { title: s.nav.newAuditRequest, href: "/dashboard/customer/new-project", icon: FileText },
+      { title: s.nav.myReports, href: "/dashboard/reports", icon: FileBarChart },
+      { title: s.nav.myProfile, href: "/dashboard/profile", icon: UserCircle },
     ]
     if (role === "tester") return [
-      { title: "My Tasks", href: "/dashboard/tester", icon: ClipboardList },
-      { title: "AI Reports", href: "/dashboard/reports", icon: FileBarChart },
-      { title: "My Profile", href: "/dashboard/profile", icon: UserCircle },
+      { title: s.nav.myTasks, href: "/dashboard/tester", icon: ClipboardList },
+      { title: s.nav.aiReports, href: "/dashboard/reports", icon: FileBarChart },
+      { title: s.nav.myProfile, href: "/dashboard/profile", icon: UserCircle },
     ]
     if (role === "admin") return [
-      { title: "Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
-      { title: "Users", href: "/dashboard/admin/users", icon: Users, badge: pendingProfileCount },
-      { title: "AI Audit Reports", href: "/dashboard/reports", icon: FileBarChart },
-      { title: "My Profile", href: "/dashboard/profile", icon: UserCircle },
+      { title: s.nav.dashboard, href: "/dashboard/admin", icon: LayoutDashboard },
+      { title: s.nav.users, href: "/dashboard/admin/users", icon: Users, badge: pendingProfileCount },
+      { title: s.nav.aiAuditReports, href: "/dashboard/reports", icon: FileBarChart },
+      { title: s.nav.myProfile, href: "/dashboard/profile", icon: UserCircle },
     ]
     return []
   })()
@@ -86,7 +89,7 @@ export function DashboardSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-full w-64 bg-card border-r border-border transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static",
+          "fixed top-0 left-0 z-40 min-h-full w-64 bg-card border-r border-border transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -155,7 +158,7 @@ export function DashboardSidebar() {
                 className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50"
               >
                 <LogOut className="h-5 w-5" />
-                Sign out
+                {s.signOut}
               </Button>
             </SignOutButton>
 

@@ -23,6 +23,10 @@ export function useTranslation() {
 
   useEffect(() => {
     setLocaleState(readLocaleCookie())
+
+    const handler = (e: Event) => setLocaleState((e as CustomEvent<Locale>).detail)
+    window.addEventListener("locale-change", handler)
+    return () => window.removeEventListener("locale-change", handler)
   }, [])
 
   const t = getTranslations(locale)
@@ -46,8 +50,8 @@ export function useTranslation() {
       // Not logged in or network error — cookie-only is fine
     }
 
-    // 3. Trigger re-render + refresh Server Components
-    setLocaleState(newLocale)
+    // 3. Broadcast to all useTranslation instances + refresh Server Components
+    window.dispatchEvent(new CustomEvent("locale-change", { detail: newLocale }))
     router.refresh()
   }
 

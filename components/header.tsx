@@ -70,7 +70,7 @@ export async function Header() {
             {t.nav.login}
           </Link>
           <Link
-            href="/sign-up"
+            href="/sign-up?intro=true"
             className="inline-flex items-center rounded-[14px] px-4 py-2 text-sm font-semibold  transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
             style={{ backgroundColor: "#fafafa", border: "1px solid #eaeaea", color: "#1a2744" }}
           >

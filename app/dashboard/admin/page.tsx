@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RoleGuard } from "@/components/role-guard";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   LayoutDashboard,
   Users,
@@ -75,18 +76,21 @@ const statusColors: Record<string, string> = {
   Cancelled: "bg-destructive/15 text-destructive",
 };
 
-const navItems = [
-  { label: "Project Overview", icon: LayoutDashboard, href: "/dashboard/admin" },
-  { label: "Customer Management", icon: Users, href: "/dashboard/admin/users?role=customer" },
-  { label: "Tester Network", icon: Network, href: "/dashboard/admin/users?role=tester" },
-  { label: "AI Audit Reports", icon: FileText, href: "/dashboard/reports" },
-  { label: "Scan Management", icon: ScanLine, href: "/dashboard/admin/scan" },
-  { label: "System Settings", icon: Settings, href: "/dashboard/admin/settings" },
-  { label: "My Profile", icon: UserCircle, href: "/dashboard/profile" },
-];
+// navItems are built inside the component so labels can be translated
 
 export default function AdminDashboard() {
   const pathname = usePathname();
+  const { t } = useTranslation();
+
+  const navItems = [
+    { label: t.admin.nav.projectOverview, icon: LayoutDashboard, href: "/dashboard/admin" },
+    { label: t.admin.nav.customerManagement, icon: Users, href: "/dashboard/admin/users?role=customer" },
+    { label: t.admin.nav.testerNetwork, icon: Network, href: "/dashboard/admin/users?role=tester" },
+    { label: t.admin.nav.aiAuditReports, icon: FileText, href: "/dashboard/reports" },
+    { label: t.admin.nav.scanManagement, icon: ScanLine, href: "/dashboard/admin/scan" },
+    { label: t.admin.nav.systemSettings, icon: Settings, href: "/dashboard/admin/settings" },
+    { label: t.admin.nav.myProfile, icon: UserCircle, href: "/dashboard/profile" },
+  ];
 
   function isNavActive(href: string) {
     const base = href.split("?")[0];
@@ -159,15 +163,15 @@ export default function AdminDashboard() {
     const pct = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "0%");
 
     return [
-      { title: "Active Audits", value: String(active), change: pct(active), icon: LayoutDashboard },
-      { title: "Pending Assignments", value: String(pending), change: pct(pending), icon: Users },
-      { title: "Completed Reports", value: String(completed), change: pct(completed), icon: FileText },
-      { title: "Active Testers", value: String(activeTesterSet.size), change: `+${activeTesterSet.size}`, icon: Network },
+      { title: t.admin.dashboard.activeAudits, value: String(active), change: pct(active), icon: LayoutDashboard },
+      { title: t.admin.dashboard.pendingAssignments, value: String(pending), change: pct(pending), icon: Users },
+      { title: t.admin.dashboard.completedReports, value: String(completed), change: pct(completed), icon: FileText },
+      { title: t.admin.dashboard.activeTesters, value: String(activeTesterSet.size), change: `+${activeTesterSet.size}`, icon: Network },
     ];
-  }, [items]);
+  }, [items, t]);
 
   const renderAssignedTesters = (assigned: AssignedTester[]) => {
-    if (!assigned?.length) return <span className="text-muted-foreground italic">Not assigned</span>;
+    if (!assigned?.length) return <span className="text-muted-foreground italic">{t.admin.dashboard.notAssigned}</span>;
 
     const lead = assigned.find((t) => t.role === "lead");
     const shown = lead?.testerId || assigned[0].testerId;
@@ -189,17 +193,17 @@ export default function AdminDashboard() {
         <button
           type="button"
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
-          aria-label="Close sidebar"
+          aria-label={t.admin.sidebar.closeSidebar}
           onClick={() => setSidebarOpen(false)}
         />
       )}
-
+lll
       {/* Sidebar */}
       <aside
         className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 border-r border-border bg-sidebar transition-transform lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        aria-label="Admin navigation"
+        aria-label={t.admin.sidebar.navigation}
       >
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
@@ -207,7 +211,7 @@ export default function AdminDashboard() {
               <div className="h-8 w-8 rounded-lg bg-sidebar-primary" aria-hidden="true" />
               <span className="text-lg font-semibold text-sidebar-foreground">Attesthub</span>
             </div>
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)} aria-label={t.admin.sidebar.closeSidebar}>
               <X className="h-5 w-5" aria-hidden="true" />
             </Button>
           </div>
@@ -238,8 +242,8 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-sidebar-primary" aria-hidden="true" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-sidebar-foreground">Admin User</p>
-                <p className="text-xs text-sidebar-foreground/70">admin@attesthub.com</p>
+                <p className="text-sm font-medium text-sidebar-foreground">{t.admin.sidebar.adminUser}</p>
+                <p className="text-xs text-sidebar-foreground/70">{t.admin.sidebar.adminEmail}</p>
               </div>
             </div>
           </div>
@@ -250,12 +254,12 @@ export default function AdminDashboard() {
       <main className="flex-1">
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex h-16 items-center gap-4 px-6">
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar">
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)} aria-label={t.admin.sidebar.openSidebar}>
               <Menu className="h-5 w-5" aria-hidden="true" />
             </Button>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Admin Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Manage audits, testers, and reports</p>
+              <h1 className="text-2xl font-semibold text-foreground">{t.admin.dashboard.title}</h1>
+              <p className="text-sm text-muted-foreground">{t.admin.dashboard.subtitle}</p>
             </div>
           </div>
         </header>
@@ -263,7 +267,7 @@ export default function AdminDashboard() {
         <div className="p-6 space-y-6">
           {errorMsg && (
             <div role="alert" className="rounded-lg border border-border bg-card p-4 text-sm">
-              <span className="font-medium">Error:</span> {errorMsg}
+              <span className="font-medium">{t.admin.dashboard.errorPrefix}</span> {errorMsg}
             </div>
           )}
 

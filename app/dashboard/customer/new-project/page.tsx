@@ -1,20 +1,28 @@
 "use client"
 import { AuditRequestForm } from "@/components/audit-request-form"
+import { DashboardHeader } from "@/components/dashboard-header"
+import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { useTranslation } from "@/lib/i18n/useTranslation"
 
 export default function Page() {
+  const { t } = useTranslation()
+
   return (
-    <main className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
-            New Audit Request
-          </h1>
-          <p className="mt-3 text-lg text-muted-foreground text-pretty">
-            Submit your accessibility audit request and we'll get started on making your digital experience inclusive
-            for everyone.
-          </p>
+    <main className="flex min-h-screen bg-background">
+      <DashboardSidebar />
+      <div className="flex-1 flex flex-col">
+        <DashboardHeader />
+        <div className="mx-2">
+          <div className="mb-8 text-center">
+            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
+              {t.customer.newProject.title}
+            </h1>
+            <p className="mt-3 text-lg text-muted-foreground text-pretty">
+              {t.customer.newProject.subtitle}
+            </p>
+          </div>
+          <AuditRequestForm />
         </div>
-        <AuditRequestForm />
       </div>
     </main>
   )

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Calendar, Clock, ArrowRight } from "lucide-react"
+import { useTranslation } from "@/lib/i18n/useTranslation"
 
 type TesterWorkStatus = "assigned" | "accepted" | "working" | "done" | "removed"
 
@@ -34,15 +35,6 @@ type AuditRequestFromApi = {
 
 type TabFilter = "all" | "pending" | "active" | "completed"
 
-const STATUS_LABEL: Record<ProjectStatus, string> = {
-  pending: "Pending",
-  open: "Open",
-  in_review: "In Review",
-  scheduled: "Scheduled",
-  completed: "Completed",
-  cancelled: "Cancelled",
-}
-
 const STATUS_BADGE: Record<ProjectStatus, string> = {
   pending: "bg-muted text-muted-foreground",
   open: "bg-chart-1/20 text-chart-1",
@@ -50,18 +42,6 @@ const STATUS_BADGE: Record<ProjectStatus, string> = {
   scheduled: "bg-chart-3/20 text-chart-3",
   completed: "bg-chart-2/20 text-chart-2",
   cancelled: "bg-destructive/15 text-destructive",
-}
-
-const SERVICE_CATEGORY_LABEL: Record<string, string> = {
-  website: "Website",
-  mobile: "Mobile App",
-  physical: "Physical Space",
-}
-
-const SERVICE_PACKAGE_LABEL: Record<string, string> = {
-  automated: "Automated",
-  hybrid: "Hybrid",
-  expert: "Full Expert",
 }
 
 function computeProgress(item: AuditRequestFromApi): number {
@@ -92,6 +72,29 @@ export function ProjectsList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<TabFilter>("all")
+  const { t } = useTranslation()
+  const s = t.projectsList
+
+  const STATUS_LABEL: Record<ProjectStatus, string> = {
+    pending: s.statusPending,
+    open: s.statusOpen,
+    in_review: s.statusInReview,
+    scheduled: s.statusScheduled,
+    completed: s.statusCompleted,
+    cancelled: s.statusCancelled,
+  }
+
+  const SERVICE_CATEGORY_LABEL: Record<string, string> = {
+    website: s.categoryWebsite,
+    mobile: s.categoryMobile,
+    physical: s.categoryPhysical,
+  }
+
+  const SERVICE_PACKAGE_LABEL: Record<string, string> = {
+    automated: s.packageAutomated,
+    hybrid: s.packageHybrid,
+    expert: s.packageExpert,
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -131,13 +134,13 @@ export function ProjectsList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">My Audit Projects</h1>
-          <p className="text-muted-foreground mt-1">Manage and track your accessibility audits</p>
+          <h1 className="text-3xl font-bold text-foreground">{s.title}</h1>
+          <p className="text-muted-foreground mt-1">{s.subtitle}</p>
         </div>
         <Button className="gap-2" asChild>
           <Link href="/dashboard/customer/new-project">
             <Plus className="h-4 w-4" aria-hidden="true" />
-            New Project
+            {s.newProject}
           </Link>
         </Button>
       </div>
@@ -167,15 +170,15 @@ export function ProjectsList() {
           {items.length > 0 && (
             <div className="grid gap-4 md:grid-cols-3">
               <Card className="p-6">
-                <p className="text-sm text-muted-foreground">Total Projects</p>
+                <p className="text-sm text-muted-foreground">{s.statTotal}</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.total}</p>
               </Card>
               <Card className="p-6">
-                <p className="text-sm text-muted-foreground">In Progress</p>
+                <p className="text-sm text-muted-foreground">{s.statInProgress}</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.active}</p>
               </Card>
               <Card className="p-6">
-                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-sm text-muted-foreground">{s.statCompleted}</p>
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.completed}</p>
               </Card>
             </div>
@@ -184,15 +187,15 @@ export function ProjectsList() {
           {/* Tabs */}
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabFilter)}>
             <TabsList>
-              <TabsTrigger value="all">All ({items.length})</TabsTrigger>
+              <TabsTrigger value="all">{s.tabAll} ({items.length})</TabsTrigger>
               <TabsTrigger value="pending">
-                Pending ({items.filter((p) => p.status === "pending").length})
+                {s.tabPending} ({items.filter((p) => p.status === "pending").length})
               </TabsTrigger>
               <TabsTrigger value="active">
-                In Progress ({items.filter((p) => matchesTab(p.status, "active")).length})
+                {s.tabActive} ({items.filter((p) => matchesTab(p.status, "active")).length})
               </TabsTrigger>
               <TabsTrigger value="completed">
-                Completed ({items.filter((p) => matchesTab(p.status, "completed")).length})
+                {s.tabCompleted} ({items.filter((p) => matchesTab(p.status, "completed")).length})
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -201,15 +204,13 @@ export function ProjectsList() {
           {filtered.length === 0 && (
             <Card className="p-10 text-center">
               <p className="text-muted-foreground mb-4">
-                {tab === "all"
-                  ? "You haven't submitted any audit requests yet."
-                  : `No projects in this category.`}
+                {tab === "all" ? s.emptyAll : s.emptyCategory}
               </p>
               {tab === "all" && (
                 <Button asChild>
                   <Link href="/dashboard/customer/new-project">
                     <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-                    Create your first project
+                    {s.createFirst}
                   </Link>
                 </Button>
               )}
@@ -256,13 +257,13 @@ export function ProjectsList() {
                       <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" aria-hidden="true" />
-                          <span>Submitted: {createdStr}</span>
+                          <span>{s.submitted} {createdStr}</span>
                         </div>
                         {project.dueDate && (
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4" aria-hidden="true" />
                             <span>
-                              Due:{" "}
+                              {s.due}{" "}
                               {new Date(project.dueDate).toLocaleDateString("en-GB", {
                                 day: "numeric", month: "short", year: "numeric",
                               })}
@@ -275,7 +276,7 @@ export function ProjectsList() {
                       {progress > 0 && (
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Progress</span>
+                            <span className="text-muted-foreground">{s.progress}</span>
                             <span className="font-medium text-foreground">{progress}%</span>
                           </div>
                           <div
@@ -298,7 +299,7 @@ export function ProjectsList() {
                     <div className="flex items-center lg:self-center">
                       <Button variant="outline" size="sm" className="gap-2 bg-transparent" asChild>
                         <Link href={`/dashboard/customer/projects/${project._id}`}>
-                          View Details
+                          {s.viewDetails}
                           <ArrowRight className="h-4 w-4" aria-hidden="true" />
                         </Link>
                       </Button>

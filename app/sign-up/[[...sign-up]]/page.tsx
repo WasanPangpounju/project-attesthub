@@ -1,13 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { SignUp } from '@clerk/nextjs'
 import { ShieldCheck, Search, FileText, Users } from 'lucide-react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/useTranslation'
 
-export default function Page() {
-  const [showForm, setShowForm] = useState(false)
+function SignUpContent() {
+  const searchParams = useSearchParams()
+  const hasIntro = searchParams.get('intro') === 'true'
+  const [showForm, setShowForm] = useState(!hasIntro)
   const { t } = useTranslation()
   const s = t.signUpIntro
 
@@ -85,5 +88,13 @@ export default function Page() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <SignUpContent />
+    </Suspense>
   )
 }
