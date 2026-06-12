@@ -19,6 +19,7 @@ export interface IGuestScanReport extends Document {
   domain: string;
   url: string;
   visitorIp: string;
+  clerkUserId?: string;
   status: 'pending' | 'scanning' | 'completed' | 'failed';
   jobId?: string;
   score?: number;
@@ -57,6 +58,7 @@ const GuestScanReportSchema = new Schema<IGuestScanReport>(
     domain: { type: String, required: true, index: true },
     url: { type: String, required: true },
     visitorIp: { type: String, default: '' },
+    clerkUserId: { type: String, index: true },
     status: {
       type: String,
       enum: ['pending', 'scanning', 'completed', 'failed'],

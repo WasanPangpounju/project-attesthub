@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@clerk/nextjs/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import User from "@/models/User"
+
+export const runtime = "nodejs"
 
 const VALID_ROLES = ["admin", "tester", "customer"] as const
 const VALID_STATUSES = ["active", "suspended"] as const
 
+async function requireAdmin() {
+  const { userId } = await auth()
+  if (!userId) return null
+  await connectToDatabase()
+  const caller = await User.findOne({ clerkUserId: userId }).lean<{ role?: string }>()
+  if (caller?.role !== "admin") return null
+  return userId
+}
+
 export async function GET(req: NextRequest) {
   try {
-    await connectToDatabase()
+    const adminId = await requireAdmin()
+    if (!adminId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
     const search = searchParams.get("search")?.trim() || ""
@@ -65,7 +78,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await connectToDatabase()
+    const adminId = await requireAdmin()
+    if (!adminId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const body = (await req.json()) as {
       email?: string
@@ -122,7 +136,8 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    await connectToDatabase()
+    const adminId = await requireAdmin()
+    if (!adminId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const body = (await req.json()) as {
       clerkUserId?: string
@@ -183,7 +198,8 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    await connectToDatabase()
+    const adminId = await requireAdmin()
+    if (!adminId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const body = (await req.json()) as { clerkUserId?: string }
     const { clerkUserId } = body

@@ -6,20 +6,23 @@ import { TestimonialsSection } from "@/components/testimonials-section"
 import { CtaSection } from "@/components/cta-section"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
+import { ScanProvider } from "@/components/free-scan/scan-context"
 
 export default function Page() {
   return (
     <div className="min-h-screen">
-      <Header />
-      <main id="main-content">
-        <HeroSection />
-        <ServicesSection />
-        <HowWeWorkSection />
-        <WhyChooseUsSection />
-        <TestimonialsSection />
-        <CtaSection />
-      </main>
-      <Footer />
+      <ScanProvider>
+        <Header />
+        <main id="main-content">
+          <HeroSection />
+          <ServicesSection />
+          <HowWeWorkSection />
+          <WhyChooseUsSection />
+          <TestimonialsSection />
+          <CtaSection />
+        </main>
+        <Footer />
+      </ScanProvider>
     </div>
   )
 }

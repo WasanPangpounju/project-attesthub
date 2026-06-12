@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import GuestScanReport from '@/models/GuestScanReport';
 import { guestScanQueue } from '@/lib/queue/guestScanQueue';
@@ -52,6 +53,8 @@ export async function POST(req: NextRequest) {
     const normalizedUrl = parsedUrl.href;
     const domain = parsedUrl.hostname.replace(/^www\./, '');
 
+    const { userId } = await auth();
+
     await connectToDatabase();
 
     // ตรวจสอบ cache: completed report ของ domain เดิมใน 30 วัน
@@ -63,6 +66,12 @@ export async function POST(req: NextRequest) {
     }).sort({ createdAt: -1 });
 
     if (cached) {
+      // ถ้า user login อยู่ ให้ผูกผลจาก cache เข้ากับประวัติของ user ด้วย
+      if (userId && !cached.clerkUserId) {
+        cached.clerkUserId = userId;
+        await cached.save();
+      }
+
       return NextResponse.json(
         { reportId: cached._id.toString(), cached: true },
         { status: 200 }
@@ -75,7 +84,10 @@ export async function POST(req: NextRequest) {
       url: normalizedUrl,
       status: 'pending',
       visitorIp: ip,
+      clerkUserId: userId ?? undefined,
     });
+
+    console.log('[start] userId:', userId, 'reportId:', report._id);
 
     // Push job ลง queue
     const job = await guestScanQueue.add('scan', { reportId: report._id.toString() });

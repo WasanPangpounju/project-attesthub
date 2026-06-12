@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Menu, X, Shield, LogOut, UserCircle,
-  FolderOpen, FileBarChart, FileText, ClipboardList, LayoutDashboard, Users,
+  FolderOpen, FileBarChart, FileText, ClipboardList, LayoutDashboard, Users, History,
 } from "lucide-react"
 import { UserButton, useUser, SignOutButton } from "@clerk/nextjs"
 import { useTranslation } from "@/lib/i18n/useTranslation"
@@ -50,6 +50,7 @@ export function DashboardSidebar() {
       { title: s.nav.myProjects, href: "/dashboard/customer", icon: FolderOpen },
       { title: s.nav.newAuditRequest, href: "/dashboard/customer/new-project", icon: FileText },
       { title: s.nav.myReports, href: "/dashboard/reports", icon: FileBarChart },
+      { title: s.nav.scanHistory, href: "/dashboard/scan-history", icon: History },
       { title: s.nav.myProfile, href: "/dashboard/profile", icon: UserCircle },
     ]
     if (role === "tester") return [

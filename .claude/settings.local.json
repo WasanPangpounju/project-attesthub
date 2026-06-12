@@ -19,7 +19,20 @@
       "Bash(mkdir -p \"C:/Users/Friendly Dev/project/scanner-worker/src/models\")",
       "Read(//c/Users/Friendly Dev/project/**)",
       "Bash(docker:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Friendly Dev\\\\project\\\\project-attesthub\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Friendly Dev\\\\project\\\\project-attesthub\\\\app\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(redis-cli ping *)",
+      "Bash(where redis-server *)",
+      "Read(//c/Users/Friendly Dev/AppData/Local/ms-playwright/**)",
+      "Bash(npm run *)",
+      "Bash(where mongosh *)",
+      "Bash(where mongo *)",
+      "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter 'ProcessId=3944' | Select-Object CommandLine | Format-List\")",
+      "Bash(grep -n \"//.*role\\\\|//.*auth\\\\|//.*check\" app/api/audit-requests/route.ts app/api/audit-requests/[id]/route.ts app/api/customer/projects/[id]/members/route.ts)"
     ]
   }
 }

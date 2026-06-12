@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import AuditRequest from "@/models/audit-request"
+import User from "@/models/User"
 import { encryptPassword } from "@/lib/crypto"
 
 export const runtime = "nodejs"
@@ -28,6 +29,11 @@ export async function POST(req: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     await connectToDatabase()
+
+    const user = await User.findOne({ clerkUserId: userId }).lean()
+    if (user?.role !== "customer") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
     const body = await req.json()
 

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { detectLocale, getTranslations } from "@/lib/i18n";
+import { HeroScanInput } from "@/components/free-scan/hero-scan-input";
 
 export async function HeroSection() {
   const cookieStore = await cookies();
@@ -46,8 +47,11 @@ export async function HeroSection() {
             {t.hero.subtitle}
           </p>
 
+          {/* Scan input */}
+          <HeroScanInput />
+
           {/* CTAs */}
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
               href="/free-scan"
               className="inline-flex items-center rounded-[14px] px-6 py-3 text-base font-semibold text-currentColor transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"

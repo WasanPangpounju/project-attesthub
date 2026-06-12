@@ -17,13 +17,27 @@ async function requireOwnerOrAdmin(userId: string, projectId: string) {
   return { user, project }
 }
 
+// Owner, admin, or invited org members can view the team list
+async function requireAccess(userId: string, projectId: string) {
+  await connectToDatabase()
+  const user = await User.findOne({ clerkUserId: userId }).lean()
+  const project = await AuditRequest.findById(projectId).lean()
+  if (!project) return null
+  const hasAccess =
+    user?.role === "admin" ||
+    project.customerId === userId ||
+    (project.orgMembers ?? []).includes(userId)
+  if (!hasAccess) return null
+  return { user, project }
+}
+
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const { id } = await params
-    const ctx = await requireOwnerOrAdmin(userId, id)
+    const ctx = await requireAccess(userId, id)
     if (!ctx?.project) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const project = ctx.project

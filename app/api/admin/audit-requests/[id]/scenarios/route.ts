@@ -25,11 +25,14 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
     const { id } = await params;
 
-    // Allow admin OR the project owner (customer)
+    // Allow admin OR the project owner (customer) OR an invited org member
     const admin = await requireAdmin(userId);
     if (!admin) {
       const auditRequest = await AuditRequest.findById(id).lean();
-      if (!auditRequest || auditRequest.customerId !== userId) {
+      const hasAccess =
+        !!auditRequest &&
+        (auditRequest.customerId === userId || (auditRequest.orgMembers ?? []).includes(userId));
+      if (!hasAccess) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
