@@ -392,7 +392,7 @@ export default function CustomerProjectDetailPage() {
   const [submittingComment, setSubmittingComment] = useState(false)
   const [comments, setComments] = useState<Comment[]>([])
 
-  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(true)
 
   const [scenariosWithRecs, setScenariosWithRecs] = useState<ScenarioWithRecs[]>([])
   const [loadingRecs, setLoadingRecs] = useState(false)

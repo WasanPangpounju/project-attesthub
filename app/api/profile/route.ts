@@ -131,6 +131,50 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
+// Fields any role may submit
+const SHARED_FIELDS = ["firstName", "lastName", "jobTitle", "phone", "bio"] as const
+
+// Sub-fields of testerProfile a tester may self-edit (excludes admin-managed
+// totalProjects/totalEarnings)
+const TESTER_PROFILE_FIELDS = [
+  "disabilityTypes",
+  "wcagKnowledge",
+  "screenReaders",
+  "devices",
+  "languages",
+  "bio",
+  "yearsExperience",
+] as const
+
+function pick<T extends Record<string, unknown>>(obj: T, keys: readonly string[]) {
+  const result: Record<string, unknown> = {}
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) result[key] = obj[key]
+  }
+  return result
+}
+
+// Filter the incoming payload down to the fields the user's role is allowed
+// to change, dropping any cross-role fields (e.g. testerProfile from a
+// customer, organization from a tester).
+export function filterChangesByRole(body: Record<string, unknown>, role?: string | null) {
+  const changes = pick(body, SHARED_FIELDS)
+
+  if (role === "customer" && body.organization && typeof body.organization === "object") {
+    changes.organization = body.organization
+  }
+
+  if (role === "tester" && body.testerProfile && typeof body.testerProfile === "object") {
+    changes.testerProfile = pick(body.testerProfile as Record<string, unknown>, TESTER_PROFILE_FIELDS)
+  }
+
+  if (role === "admin" && body.adminProfile && typeof body.adminProfile === "object") {
+    changes.adminProfile = body.adminProfile
+  }
+
+  return changes
+}
+
 export async function PUT(req: NextRequest) {
   try {
     const { userId } = await auth()
@@ -151,13 +195,15 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Last name cannot be empty" }, { status: 400 })
     }
 
+    const changes = filterChangesByRole(body, user.role)
+
     const userName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || userId
 
     // Update existing pending request or create a new one
     const existing = await ProfileChangeRequest.findOne({ userId, status: "pending" })
 
     if (existing) {
-      existing.changes = body
+      existing.changes = changes
       existing.updatedAt = new Date()
       await existing.save()
     } else {
@@ -166,7 +212,7 @@ export async function PUT(req: NextRequest) {
         userEmail: user.email ?? "",
         userRole: user.role ?? "unknown",
         userName,
-        changes: body,
+        changes,
         status: "pending",
       })
     }

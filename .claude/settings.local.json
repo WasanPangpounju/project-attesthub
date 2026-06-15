@@ -32,7 +32,17 @@
       "Bash(where mongosh *)",
       "Bash(where mongo *)",
       "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter 'ProcessId=3944' | Select-Object CommandLine | Format-List\")",
-      "Bash(grep -n \"//.*role\\\\|//.*auth\\\\|//.*check\" app/api/audit-requests/route.ts app/api/audit-requests/[id]/route.ts app/api/customer/projects/[id]/members/route.ts)"
+      "Bash(grep -n \"//.*role\\\\|//.*auth\\\\|//.*check\" app/api/audit-requests/route.ts app/api/audit-requests/[id]/route.ts app/api/customer/projects/[id]/members/route.ts)",
+      "Bash(netstat -ano)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/api/profile)",
+      "Bash(curl -s -X PUT http://localhost:3000/api/profile -H \"Content-Type: application/json\" -d '{\"firstName\":\"Test\",\"testerProfile\":{\"totalEarnings\":99999},\"adminProfile\":{\"department\":\"X\"}}' -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/dashboard/profile)",
+      "Bash(curl -s http://localhost:3000/ -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s -i http://localhost:3000/api/profile)",
+      "Bash(curl -s -i http://localhost:3000/dashboard/profile)",
+      "Bash(find . -maxdepth 3 -iname \"*.env*\" -not -path \"./node_modules/*\")",
+      "Bash(grep -i \"CLERK_TEST\\\\|TEST_EMAIL\\\\|TEST_USER\\\\|E2E\" .env.local)"
     ]
   }
 }

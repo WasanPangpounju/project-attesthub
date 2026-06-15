@@ -1,6 +1,6 @@
 # Scan History (Customer) — Status Notes
 
-Status: **Implemented, pending verification** (2026-06-12)
+Status: **Implemented, committed (634c9b4), pending dev-restart verification** (2026-06-12)
 
 ## Summary
 
@@ -57,14 +57,17 @@ requires the user to restart their own dev server.
 
 ## Verification steps (for next session, after restart)
 
-1. Restart dev server
+**This is the #1 priority for the next session** — the code is written and
+committed, but unverified end-to-end.
+
+1. Restart dev server (`npm run dev`)
 2. Log in as a customer, run a free scan (use a domain not already cached
    within 30 days)
 3. Check terminal for `[start] userId: <id> reportId: <id>` — userId should
    be non-null
 4. Visit `/dashboard/scan-history` — the new scan should appear
 5. **Remove the temp `console.log` at `app/api/guest-scan/start/route.ts:90`**
-   once confirmed working
+   once confirmed working, then commit that small cleanup separately
 
 ## Known gaps / follow-ups
 

@@ -1,6 +1,7 @@
 # Customer Role — Code Review & Fixes
 
-Status: Review done 2026-06-12, HIGH + MEDIUM fixes applied 2026-06-12.
+Status: Review done 2026-06-12, HIGH + MEDIUM fixes applied and committed
+(634c9b4) 2026-06-12.
 
 ## Scope
 
@@ -41,12 +42,34 @@ a project, even though the UI form is customer-only.
   `User.findOne({ clerkUserId: userId })` and return `403 Forbidden` unless
   `user.role === "customer"`.
 
-### 🟡 MEDIUM — `PUT /api/profile` missing role-specific field validation — NOT YET FIXED
+### 🟡 MEDIUM — `PUT /api/profile` missing role-specific field validation — FIXED
 
-`app/api/profile/route.ts:134-196` accepts `testerProfile` /
-`customerProfile` payloads without checking the submitter's role matches.
-UI prevents this in practice but the API boundary doesn't enforce it.
-Deferred — lower priority, no immediate exploit path found.
+`app/api/profile/route.ts` previously stored the raw request body as the
+`ProfileChangeRequest.changes`, which the admin-approval endpoint
+(`app/api/admin/profile-change-requests/[requestId]/route.ts`) applies
+directly via `$set`. A customer could send a `testerProfile` (or
+`adminProfile`) payload and, if approved, have those cross-role fields
+written to their own user document.
+
+- **Fix**: added `filterChangesByRole()` in `app/api/profile/route.ts`,
+  applied to the body before it is saved as `changes`:
+  - All roles: `firstName`, `lastName`, `jobTitle`, `phone`, `bio`
+  - `customer` only: `organization`
+  - `tester` only: `testerProfile` (further restricted to
+    `disabilityTypes`, `wcagKnowledge`, `screenReaders`, `devices`,
+    `languages`, `bio`, `yearsExperience` — excludes admin-managed
+    `totalProjects`/`totalEarnings`)
+  - `admin` only: `adminProfile`
+  - Any other field (e.g. `testerProfile` from a customer) is silently
+    dropped before the change request is created or updated.
+
+  **Verified** (2026-06-15): temporarily exported `filterChangesByRole()`
+  and ran it directly via `npx tsx` against 3 payloads (customer, tester,
+  admin each sending all of `organization`/`testerProfile`/`adminProfile`).
+  Result matched expectations in all 3 cases — cross-role fields
+  (`testerProfile`/`adminProfile` for a customer, `organization`/
+  `adminProfile` for a tester, `testerProfile`/`organization` for an admin)
+  were stripped, while the role's own fields passed through.
 
 ### 🟢 LOW — Comment submission race condition — NOT FIXED
 
@@ -65,4 +88,22 @@ guard already mitigates this. Low priority, left as-is.
 ## Remaining follow-ups
 
 - Manually verify org-member access end-to-end as noted above
-- Consider addressing the MEDIUM profile-role-check issue in a future pass
+- Sign-in as customer not possible from this environment (no Clerk test
+  credentials, no browser automation tool) — `PUT /api/profile` was only
+  verified at the `filterChangesByRole()` unit level (see above), not via a
+  real authenticated HTTP request
+
+## Session Log — 2026-06-15
+
+- **`app/dashboard/customer/projects/[id]/page.tsx`** — "โปรเจกต์ของฉัน /
+  ดูรายละเอียด" → Section 6 "Project Details" (`detailsOpen` state, ~line
+  395) now defaults to `useState(true)` instead of `false`, so submitted
+  project details are shown expanded by default. The open/close toggle
+  button (ChevronUp/ChevronDown) is unchanged — no UI/markup changes.
+- **`app/api/profile/route.ts`** — `filterChangesByRole()` is now exported
+  (`export function filterChangesByRole`) so it can be unit-tested directly
+  with `npx tsx --env-file=.env.local <script>.ts` (module import triggers
+  `lib/mongodb.ts`, which needs `MONGODB_URI` from `.env.local`). No
+  behavior change from the export itself.
+- Verified `filterChangesByRole()` strips cross-role fields for
+  customer/tester/admin payloads (see verification note above).
