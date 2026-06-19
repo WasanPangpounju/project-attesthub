@@ -32,6 +32,7 @@ import {
   X,
   UserCircle,
   ExternalLink,
+  Globe,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ const navItems = [
   { label: "Tester Network", icon: Network, href: "/dashboard/admin/users?role=tester" },
   { label: "AI Audit Reports", icon: FileText, href: "/dashboard/reports" },
   { label: "Scan Management", icon: ScanLine, href: "/dashboard/admin/scan" },
+  { label: "Guest Scans", icon: Globe, href: "/admin/guest-scans" },
   { label: "System Settings", icon: Settings, href: "/dashboard/admin/settings" },
   { label: "My Profile", icon: UserCircle, href: "/dashboard/profile" },
 ];

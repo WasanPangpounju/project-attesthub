@@ -147,6 +147,7 @@ const en = {
       testerNetwork: "Tester Network",
       aiAuditReports: "AI Audit Reports",
       scanManagement: "Scan Management",
+      guestScans: "Guest Scans",
       systemSettings: "System Settings",
       myProfile: "My Profile",
     },

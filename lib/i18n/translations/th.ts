@@ -149,6 +149,7 @@ const th: Translations = {
       testerNetwork: "เครือข่ายผู้ทดสอบ",
       aiAuditReports: "รายงาน AI",
       scanManagement: "จัดการการสแกน",
+      guestScans: "Guest Scans",
       systemSettings: "ตั้งค่าระบบ",
       myProfile: "โปรไฟล์ของฉัน",
     },

@@ -23,6 +23,7 @@ import {
   Menu,
   X,
   UserCircle,
+  Globe,
 } from "lucide-react";
 
 type ProjectStatus = "pending" | "open" | "in_review" | "scheduled" | "completed" | "cancelled";
@@ -88,6 +89,7 @@ export default function AdminDashboard() {
     { label: t.admin.nav.testerNetwork, icon: Network, href: "/dashboard/admin/users?role=tester" },
     { label: t.admin.nav.aiAuditReports, icon: FileText, href: "/dashboard/reports" },
     { label: t.admin.nav.scanManagement, icon: ScanLine, href: "/dashboard/admin/scan" },
+    { label: t.admin.nav.guestScans ?? "Guest Scans", icon: Globe, href: "/admin/guest-scans" },
     { label: t.admin.nav.systemSettings, icon: Settings, href: "/dashboard/admin/settings" },
     { label: t.admin.nav.myProfile, icon: UserCircle, href: "/dashboard/profile" },
   ];
