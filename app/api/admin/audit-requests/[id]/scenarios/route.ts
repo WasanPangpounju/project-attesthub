@@ -10,6 +10,11 @@ export const runtime = "nodejs";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+const OBJECT_ID_RE = /^[a-f\d]{24}$/i;
+function isValidObjectId(id: string) {
+  return OBJECT_ID_RE.test(id);
+}
+
 async function requireAdmin(userId: string | null) {
   if (!userId) return null;
   const user = await User.findOne({ clerkUserId: userId }).lean();
@@ -24,6 +29,9 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
 
     // Allow admin OR the project owner (customer) OR an invited org member
     const admin = await requireAdmin(userId);
@@ -112,6 +120,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
     const body = (await req.json()) as {
       title?: string;
       description?: string;

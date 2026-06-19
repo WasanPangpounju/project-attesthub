@@ -9,6 +9,11 @@ export const runtime = "nodejs";
 
 type RouteContext = { params: Promise<{ id: string; scenarioId: string }> };
 
+const OBJECT_ID_RE = /^[a-f\d]{24}$/i;
+function isValidObjectId(id: string) {
+  return OBJECT_ID_RE.test(id);
+}
+
 async function requireAdmin(userId: string | null) {
   if (!userId) return null;
   const user = await User.findOne({ clerkUserId: userId }).lean();
@@ -24,6 +29,9 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { id, scenarioId } = await params;
+    if (!isValidObjectId(id) || !isValidObjectId(scenarioId)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
 
     const scenario = await Scenario.findOne({ _id: scenarioId, auditRequestId: id }).lean();
     if (!scenario) return NextResponse.json({ error: "Scenario not found" }, { status: 404 });
@@ -48,6 +56,9 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { id, scenarioId } = await params;
+    if (!isValidObjectId(id) || !isValidObjectId(scenarioId)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
     const body = (await req.json()) as {
       title?: string;
       description?: string;
@@ -88,6 +99,9 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { id, scenarioId } = await params;
+    if (!isValidObjectId(id) || !isValidObjectId(scenarioId)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
 
     const scenario = await Scenario.findOneAndDelete({ _id: scenarioId, auditRequestId: id }).lean();
     if (!scenario) return NextResponse.json({ error: "Scenario not found" }, { status: 404 });

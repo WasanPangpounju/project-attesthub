@@ -8,6 +8,11 @@ export const runtime = "nodejs";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+const OBJECT_ID_RE = /^[a-f\d]{24}$/i;
+function isValidObjectId(id: string) {
+  return OBJECT_ID_RE.test(id);
+}
+
 async function requireAdmin(userId: string | null) {
   if (!userId) return null;
   const user = await User.findOne({ clerkUserId: userId }).lean();
@@ -28,6 +33,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     }
 
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
     const body = (await req.json()) as { testerId?: string; role?: string; note?: string };
     const { testerId, role, note } = body;
 
@@ -108,6 +116,9 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     }
 
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
     const body = (await req.json()) as { testerId?: string };
     const { testerId } = body;
 

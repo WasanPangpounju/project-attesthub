@@ -8,6 +8,11 @@ export const runtime = "nodejs";
 
 type RouteContext = { params: Promise<{ id: string; scenarioId: string; tcId: string }> };
 
+const OBJECT_ID_RE = /^[a-f\d]{24}$/i;
+function isValidObjectId(id: string) {
+  return OBJECT_ID_RE.test(id);
+}
+
 async function requireAdmin(userId: string | null) {
   if (!userId) return null;
   const user = await User.findOne({ clerkUserId: userId }).lean();
@@ -23,6 +28,9 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { scenarioId, tcId } = await params;
+    if (!isValidObjectId(scenarioId) || !isValidObjectId(tcId)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
 
     const testCase = await TestCase.findOne({ _id: tcId, scenarioId }).lean();
     if (!testCase) return NextResponse.json({ error: "Test case not found" }, { status: 404 });
@@ -43,6 +51,9 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { scenarioId, tcId } = await params;
+    if (!isValidObjectId(scenarioId) || !isValidObjectId(tcId)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
     const body = (await req.json()) as {
       title?: string;
       description?: string;
@@ -76,6 +87,9 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { scenarioId, tcId } = await params;
+    if (!isValidObjectId(scenarioId) || !isValidObjectId(tcId)) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+    }
 
     const deleted = await TestCase.findOneAndDelete({ _id: tcId, scenarioId }).lean();
     if (!deleted) return NextResponse.json({ error: "Test case not found" }, { status: 404 });
