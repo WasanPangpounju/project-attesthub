@@ -91,3 +91,23 @@ would become a privilege-escalation vector.
   `users/[userId]/tester-stats`, `recommendations/*`
 - Consider adding a self-demotion guard to `PATCH /api/admin/users` and
   `POST /api/admin/assign-role`
+
+## Session Log — 2026-06-19
+
+- **`app/api/admin/users/[userId]/profile/route.ts`** (PUT) — added
+  `EDITABLE_FIELDS` whitelist and `pickEditableFields()` helper; request body
+  is now filtered before `$set`, preventing admin from overwriting sensitive
+  fields (`clerkUserId`, `_id`, `role`, `roleAssigned`, `status`, `email`,
+  `createdAt`). Only `firstName`, `lastName`, `jobTitle`, `phone`, `bio`,
+  `organization`, `testerProfile`, `adminProfile`, `notes`, and `isActive`
+  can be updated through this endpoint now. Committed as `fe1745e`.
+- **`app/api/admin/audit-requests/[id]/scenarios/[scenarioId]/route.ts`**
+  (GET/PUT/DELETE) — replaced `Scenario.findById(scenarioId)` /
+  `findByIdAndUpdate` / `findByIdAndDelete` with `findOne` /
+  `findOneAndUpdate` / `findOneAndDelete` filtered on
+  `{ _id: scenarioId, auditRequestId: id }`. Closes the LOW-severity
+  hierarchy gap noted above: a scenario ID no longer resolves under the
+  wrong audit request's URL — mismatches now return 404. Committed as
+  `5b8990b`.
+- Remaining LOW item (`test-cases/[tcId]` hierarchy check) not addressed in
+  this session; still open.
