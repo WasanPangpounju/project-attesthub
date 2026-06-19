@@ -53,13 +53,13 @@ change their own role or demote the last admin, potentially locking out all
 admin access. No fix applied (low operational risk, would require coordination
 between multiple admins to trigger accidentally); noted for future hardening.
 
-### 🟢 LOW — `PUT .../test-cases/[tcId]` does not verify tcId belongs to scenarioId
+### ~~🟢 LOW — `PUT .../test-cases/[tcId]` does not verify tcId belongs to scenarioId~~ (Fixed 2026-06-19)
 
-`app/api/admin/audit-requests/[id]/scenarios/[scenarioId]/test-cases/[tcId]/route.ts`
+~~`app/api/admin/audit-requests/[id]/scenarios/[scenarioId]/test-cases/[tcId]/route.ts`
 queries `TestCase.findById(tcId)` without filtering by `scenarioId` or
 `auditRequestId` from the URL. Since this endpoint is admin-only, the
-practical risk is low, but the URL hierarchy contract is not enforced.
-No fix applied; noted for future hardening.
+practical risk is low, but the URL hierarchy contract is not enforced.~~
+Fixed — see Session Log entry below.
 
 ### ✅ No issues in remaining endpoints
 
@@ -109,5 +109,8 @@ would become a privilege-escalation vector.
   hierarchy gap noted above: a scenario ID no longer resolves under the
   wrong audit request's URL — mismatches now return 404. Committed as
   `5b8990b`.
-- Remaining LOW item (`test-cases/[tcId]` hierarchy check) not addressed in
-  this session; still open.
+- **`app/api/admin/audit-requests/[id]/scenarios/[scenarioId]/test-cases/[tcId]/route.ts`**
+  (GET/PUT/DELETE) — replaced `TestCase.findById(tcId)` with
+  `TestCase.findOne({ _id: tcId, scenarioId })` so the URL hierarchy is
+  enforced: a test case ID no longer resolves under the wrong scenario's URL.
+  Committed as `8861fba`.
