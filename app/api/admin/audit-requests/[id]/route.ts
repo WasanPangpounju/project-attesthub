@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import dbConnect from "@/lib/mongodb";
 import mongoose from "mongoose";
 import AuditRequest from "@/models/audit-request";
+import User from "@/models/User";
 
 export const runtime = "nodejs";
 
@@ -28,16 +29,17 @@ function getIdFromUrl(req: Request) {
 
 export async function GET(req: Request, ctx: any) {
   try {
-    const { sessionClaims } = await auth();
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    // ✅ ตอนนี้คุณใช้ user test เลยคอมเมนต์ไว้ก่อน
-    // const role =
-    //   (sessionClaims as any)?.metadata?.role ||
-    //   (sessionClaims as any)?.publicMetadata?.role ||
-    //   (sessionClaims as any)?.privateMetadata?.role;
-    // if (role !== "admin") {
-    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    // }
+    await dbConnect();
+
+    const caller = await User.findOne({ clerkUserId: userId }).lean();
+    if (!caller || caller.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // ✅ ใช้ ctx.params ก่อน ถ้าไม่มีค่อย fallback จาก URL
     const rawFromParams = ctx?.params?.id;
@@ -45,28 +47,14 @@ export async function GET(req: Request, ctx: any) {
 
     if (!requestedId || requestedId === "undefined" || requestedId === "audit-requests") {
       return NextResponse.json(
-        {
-          error: "Bad Request",
-          message: "Missing or invalid id param",
-          debug: {
-            url: req.url,
-            rawFromParams: rawFromParams ?? null,
-            parsedFromUrl: getIdFromUrl(req),
-            requestedId,
-          },
-        },
+        { error: "Bad Request", message: "Missing or invalid id param" },
         { status: 400 }
       );
     }
 
-    await dbConnect();
-
     const db = mongoose.connection.db;
     if (!db) {
-      return NextResponse.json(
-        { error: "MongoDB not ready", debug: { readyState: mongoose.connection.readyState } },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "MongoDB not ready" }, { status: 500 });
     }
 
     const col = db.collection("auditrequests");
@@ -89,18 +77,7 @@ export async function GET(req: Request, ctx: any) {
     }
 
     if (!item) {
-      const sample = await col.findOne({}, { projection: { _id: 1, projectName: 1 } });
-      return NextResponse.json(
-        {
-          error: "Not found",
-          debug: {
-            requestedId,
-            requestedIdHex24: isHexObjectId(requestedId),
-            sampleId: sample?._id ?? null,
-          },
-        },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return NextResponse.json({ item });

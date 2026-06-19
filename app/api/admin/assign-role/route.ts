@@ -1,6 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
-import connectToDatabase from '@/lib/mongodb';
+import { connectToDatabase } from '@/lib/mongodb';
 import User from '@/models/User';
+
+export const runtime = "nodejs";
 
 // Admin-only endpoint to assign user role
 export async function POST(req: Request) {
@@ -17,7 +19,7 @@ export async function POST(req: Request) {
     await connectToDatabase();
 
     // Check if requester is admin
-    const admin = await User.findOne({ clerkUserId: adminId, role: 'admin' });
+    const admin = await User.findOne({ clerkUserId: adminId, role: 'admin' }).lean();
     if (!admin) {
       return Response.json(
         { error: 'Only admins can assign roles' },
@@ -27,6 +29,13 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const { targetUserId, role } = body;
+
+    if (!targetUserId || typeof targetUserId !== 'string' || !targetUserId.trim()) {
+      return Response.json(
+        { error: 'targetUserId is required' },
+        { status: 400 }
+      );
+    }
 
     if (!['admin', 'tester', 'customer'].includes(role)) {
       return Response.json(
@@ -81,7 +90,7 @@ export async function GET(req: Request) {
     await connectToDatabase();
 
     // Check if requester is admin
-    const admin = await User.findOne({ clerkUserId: adminId, role: 'admin' });
+    const admin = await User.findOne({ clerkUserId: adminId, role: 'admin' }).lean();
     if (!admin) {
       return Response.json(
         { error: 'Only admins can view user list' },
