@@ -9,6 +9,8 @@ const isPublicRoute = createRouteMatcher([
   '/free-scan',
   '/free-scan/(.*)',
   '/api/guest-scan/(.*)',
+  '/reports/shared/(.*)',
+  '/api/reports/shared/(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
