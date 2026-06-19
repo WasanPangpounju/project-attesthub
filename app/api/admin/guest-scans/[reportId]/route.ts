@@ -22,6 +22,11 @@ export async function DELETE(
     }
 
     const { reportId } = await params;
+    const isValidId = /^[a-f\d]{24}$/i.test(reportId);
+    if (!isValidId) {
+      return NextResponse.json({ error: 'Invalid report ID' }, { status: 400 });
+    }
+
     const result = await GuestScanReport.deleteOne({ _id: reportId });
 
     if (result.deletedCount === 0) {
