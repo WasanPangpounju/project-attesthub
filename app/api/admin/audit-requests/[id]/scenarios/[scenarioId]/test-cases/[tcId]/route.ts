@@ -22,9 +22,9 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     const admin = await requireAdmin(userId);
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { tcId } = await params;
+    const { scenarioId, tcId } = await params;
 
-    const testCase = await TestCase.findById(tcId).lean();
+    const testCase = await TestCase.findOne({ _id: tcId, scenarioId }).lean();
     if (!testCase) return NextResponse.json({ error: "Test case not found" }, { status: 404 });
 
     return NextResponse.json({ data: testCase }, { status: 200 });
@@ -42,7 +42,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     const admin = await requireAdmin(userId);
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { tcId } = await params;
+    const { scenarioId, tcId } = await params;
     const body = (await req.json()) as {
       title?: string;
       description?: string;
@@ -52,8 +52,8 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
       order?: number;
     };
 
-    const updated = await TestCase.findByIdAndUpdate(
-      tcId,
+    const updated = await TestCase.findOneAndUpdate(
+      { _id: tcId, scenarioId },
       { $set: body },
       { new: true, runValidators: true }
     ).lean();
@@ -75,9 +75,9 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     const admin = await requireAdmin(userId);
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { tcId } = await params;
+    const { scenarioId, tcId } = await params;
 
-    const deleted = await TestCase.findByIdAndDelete(tcId).lean();
+    const deleted = await TestCase.findOneAndDelete({ _id: tcId, scenarioId }).lean();
     if (!deleted) return NextResponse.json({ error: "Test case not found" }, { status: 404 });
 
     return NextResponse.json({ data: { deleted: true } }, { status: 200 });
