@@ -6,6 +6,27 @@ import ProfileChangeRequest from "@/models/profile-change-request"
 
 export const runtime = "nodejs"
 
+const EDITABLE_FIELDS = [
+  "firstName",
+  "lastName",
+  "jobTitle",
+  "phone",
+  "bio",
+  "organization",
+  "testerProfile",
+  "adminProfile",
+  "notes",
+  "isActive",
+] as const
+
+function pickEditableFields(body: Record<string, unknown>) {
+  const result: Record<string, unknown> = {}
+  for (const field of EDITABLE_FIELDS) {
+    if (body[field] !== undefined) result[field] = body[field]
+  }
+  return result
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
@@ -63,9 +84,11 @@ export async function PUT(
     const { userId } = await params
     const body = await req.json()
 
+    const editableFields = pickEditableFields(body as Record<string, unknown>)
+
     const updatedUser = await User.findOneAndUpdate(
       { clerkUserId: userId },
-      { $set: { ...(body as Record<string, unknown>), updatedAt: new Date() } },
+      { $set: { ...editableFields, updatedAt: new Date() } },
       { new: true }
     ).lean()
 
