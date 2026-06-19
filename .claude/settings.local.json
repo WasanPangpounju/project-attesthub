@@ -42,7 +42,11 @@
       "Bash(curl -s -i http://localhost:3000/api/profile)",
       "Bash(curl -s -i http://localhost:3000/dashboard/profile)",
       "Bash(find . -maxdepth 3 -iname \"*.env*\" -not -path \"./node_modules/*\")",
-      "Bash(grep -i \"CLERK_TEST\\\\|TEST_EMAIL\\\\|TEST_USER\\\\|E2E\" .env.local)"
+      "Bash(grep -i \"CLERK_TEST\\\\|TEST_EMAIL\\\\|TEST_USER\\\\|E2E\" .env.local)",
+      "Bash(git push *)",
+      "Bash(grep \"\\\\.md$\")",
+      "Bash(git rm *)",
+      "Bash(grep *)"
     ]
   }
 }
