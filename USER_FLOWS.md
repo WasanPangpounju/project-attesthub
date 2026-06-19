@@ -32,7 +32,10 @@ The system supports **4 user types**:
 **Guards:**
 - Server: `middleware.ts` protects all routes except public paths
   (`/`, `/sign-in`, `/sign-up`, `/free-scan`, `/api/guest-scan/*`,
-  `/reports/shared/*`)
+  `/reports/shared/*`, `/api/reports/shared/*`)
+  — `/reports/shared/(.*)` and `/api/reports/shared/(.*)` were added to
+  `isPublicRoute` in `middleware.ts` on 2026-06-19 (previously missing,
+  which would have forced guests to log in before viewing a shared report)
 - Client: `components/role-guard.tsx` (`RoleGuard`) checks role on each
   protected page, shows "Role Assignment Pending" / "Access Denied"
 
