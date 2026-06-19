@@ -32,6 +32,7 @@ export interface IGuestScanReport extends Document {
   };
   issues: IGuestScanIssue[];
   aiSummary?: IGuestScanAiSummary;
+  aiSummaryError?: string;
   pagesScanned?: number;
   scanDurationMs?: number;
   errorMessage?: string;
@@ -89,6 +90,7 @@ const GuestScanReportSchema = new Schema<IGuestScanReport>(
     pagesScanned: { type: Number },
     scanDurationMs: { type: Number },
     errorMessage: { type: String },
+    aiSummaryError: { type: String },
     createdAt: { type: Date, default: Date.now },
   },
   { collection: 'guestscanreports' }

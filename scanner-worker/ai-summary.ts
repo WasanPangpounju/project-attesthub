@@ -45,7 +45,14 @@ ${issueLines || 'ไม่พบปัญหา Accessibility'}
   });
 
   const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}';
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 
-  const parsed = JSON.parse(raw) as IGuestScanAiSummary;
-  return parsed;
+  try {
+    return JSON.parse(cleaned) as IGuestScanAiSummary;
+  } catch (parseErr) {
+    const parseErrMessage = parseErr instanceof Error ? parseErr.message : String(parseErr);
+    const truncatedRaw = raw.length > 2000 ? `${raw.slice(0, 2000)}...(truncated)` : raw;
+    console.error('[ai-summary] JSON parse failed:', parseErrMessage, '\nraw response:', truncatedRaw);
+    throw new Error(`AI summary JSON parse failed: ${parseErrMessage} | raw response: ${truncatedRaw}`);
+  }
 }

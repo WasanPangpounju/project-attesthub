@@ -165,10 +165,12 @@ export async function runGuestScan(reportId: string): Promise<void> {
 
     // 8. เรียก AI summary
     let aiSummary;
+    let aiSummaryError: string | undefined;
     try {
       aiSummary = await generateAiSummary(issues);
     } catch (aiErr) {
-      console.warn('[crawler] AI summary failed, using default:', aiErr instanceof Error ? aiErr.message : aiErr);
+      aiSummaryError = aiErr instanceof Error ? aiErr.message : String(aiErr);
+      console.error('[crawler] AI summary failed, using default:', aiSummaryError);
       aiSummary = {
         overview: 'ไม่สามารถสร้างสรุปอัตโนมัติได้',
         topIssues: [],
@@ -179,16 +181,20 @@ export async function runGuestScan(reportId: string): Promise<void> {
 
     // 9. อัปเดต GuestScanReport → completed
     const scanDurationMs = Date.now() - startTime;
-    await col.updateOne({ _id: new mongoose.Types.ObjectId(reportId) }, { $set: {
-      status: 'completed',
-      score,
-      wcagLevel,
-      summary,
-      issues,
-      aiSummary,
-      pagesScanned: 1,
-      scanDurationMs,
-    } });
+    await col.updateOne({ _id: new mongoose.Types.ObjectId(reportId) }, {
+      $set: {
+        status: 'completed',
+        score,
+        wcagLevel,
+        summary,
+        issues,
+        aiSummary,
+        pagesScanned: 1,
+        scanDurationMs,
+        ...(aiSummaryError ? { aiSummaryError } : {}),
+      },
+      ...(aiSummaryError ? {} : { $unset: { aiSummaryError: '' } }),
+    });
 
     console.log(
       `[crawler] ${reportId} done — score=${score}, issues=${issues.length}, duration=${scanDurationMs}ms`
