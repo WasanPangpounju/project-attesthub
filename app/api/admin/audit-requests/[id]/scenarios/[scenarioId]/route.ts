@@ -23,9 +23,9 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     const admin = await requireAdmin(userId);
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { scenarioId } = await params;
+    const { id, scenarioId } = await params;
 
-    const scenario = await Scenario.findById(scenarioId).lean();
+    const scenario = await Scenario.findOne({ _id: scenarioId, auditRequestId: id }).lean();
     if (!scenario) return NextResponse.json({ error: "Scenario not found" }, { status: 404 });
 
     const testCases = await TestCase.find({ scenarioId: scenarioId })
@@ -47,7 +47,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     const admin = await requireAdmin(userId);
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { scenarioId } = await params;
+    const { id, scenarioId } = await params;
     const body = (await req.json()) as {
       title?: string;
       description?: string;
@@ -64,8 +64,8 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
         return NextResponse.json({ error: "Tester not found" }, { status: 404 });
     }
 
-    const updated = await Scenario.findByIdAndUpdate(
-      scenarioId,
+    const updated = await Scenario.findOneAndUpdate(
+      { _id: scenarioId, auditRequestId: id },
       { $set: body },
       { new: true, runValidators: true }
     ).lean();
@@ -87,9 +87,9 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     const admin = await requireAdmin(userId);
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { scenarioId } = await params;
+    const { id, scenarioId } = await params;
 
-    const scenario = await Scenario.findByIdAndDelete(scenarioId).lean();
+    const scenario = await Scenario.findOneAndDelete({ _id: scenarioId, auditRequestId: id }).lean();
     if (!scenario) return NextResponse.json({ error: "Scenario not found" }, { status: 404 });
 
     // Delete all associated test cases
