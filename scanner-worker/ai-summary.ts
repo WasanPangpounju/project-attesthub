@@ -40,9 +40,13 @@ ${issueLines || 'ไม่พบปัญหา Accessibility'}
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 2000,
     messages: [{ role: 'user', content: prompt }],
   });
+
+  if (message.stop_reason === 'max_tokens') {
+    console.error('[ai-summary] response was truncated due to max_tokens limit');
+  }
 
   const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}';
   const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
