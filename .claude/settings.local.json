@@ -46,7 +46,19 @@
       "Bash(git push *)",
       "Bash(grep \"\\\\.md$\")",
       "Bash(git rm *)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(cp /tmp/test-anthropic.mjs ./test-anthropic.mjs)",
+      "Bash(rm -f test-anthropic.mjs)",
+      "Bash(sed 's/=.*/=.../' \"./scanner-worker/.env\")",
+      "Bash(sed 's/=.*/=.../' \"./.env.local\")",
+      "Bash(tasklist)",
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id,ProcessName,Path\")",
+      "PowerShell(Get-CimInstance *)",
+      "PowerShell(Get-WmiObject *)",
+      "PowerShell(Get-Process *)",
+      "Bash(disown)",
+      "Bash(echo \"started, pid: $!\")",
+      "Read(//tmp/**)"
     ]
   }
 }
