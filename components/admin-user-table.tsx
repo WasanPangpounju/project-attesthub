@@ -85,6 +85,7 @@ interface IUser {
   adminNote?: string
   isPreRegistered?: boolean
   profileStatus?: "active" | "pending_approval"
+  pendingType?: "profile_change" | "unassigned_role"
   createdAt: string
 }
 
@@ -523,6 +524,57 @@ function EditProfileModal({ user, open, onClose, onUpdate }: EditProfileModalPro
   )
 }
 
+// ─── Assign Role Action (for users with no role yet) ──────────────────────────
+
+interface AssignRoleActionProps {
+  user: IUser
+  onUpdate: (updated: IUser) => void
+}
+
+function AssignRoleAction({ user, onUpdate }: AssignRoleActionProps) {
+  const [role, setRole] = useState("")
+  const [assigning, setAssigning] = useState(false)
+
+  async function handleAssign() {
+    if (!role) return
+    setAssigning(true)
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clerkUserId: user.clerkUserId, role }),
+        cache: "no-store",
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error((json?.error as string) || `Request failed (${res.status})`)
+      onUpdate(json.data as IUser)
+      toast.success(`Role assigned: ${role}`)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to assign role")
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Select value={role} onValueChange={setRole}>
+        <SelectTrigger className="h-8 w-28" aria-label={`Assign role to ${getFullName(user)}`}>
+          <SelectValue placeholder="Role…" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="customer">Customer</SelectItem>
+          <SelectItem value="tester">Tester</SelectItem>
+          <SelectItem value="admin">Admin</SelectItem>
+        </SelectContent>
+      </Select>
+      <Button size="sm" className="h-8" disabled={!role || assigning} onClick={handleAssign}>
+        {assigning ? "Assigning…" : "Assign"}
+      </Button>
+    </div>
+  )
+}
+
 // ─── Row Actions ───────────────────────────────────────────────────────────────
 
 interface RowActionsProps {
@@ -751,14 +803,20 @@ export function AdminUserTable({ initialRole = "" }: AdminUserTableProps) {
   const showingFrom = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1
   const showingTo = Math.min(pagination.page * pagination.limit, pagination.total)
 
-  const pendingCount = users.filter((u) => u.profileStatus === "pending_approval").length
+  const pendingCount = users.filter((u) => !!u.pendingType).length
 
   return (
     <div className="flex flex-col gap-4">
       {/* Tabs */}
       <Tabs value={pendingTab ? "pending" : "all"} onValueChange={(v) => {
         setPendingTab(v === "pending")
-        if (v !== "pending") setStatusFilter("")
+        if (v === "pending") {
+          // Pending Approval shows users regardless of role, so a stale role
+          // filter would otherwise hide unassigned-role users.
+          setRoleFilter("")
+        } else {
+          setStatusFilter("")
+        }
       }}>
         <TabsList>
           <TabsTrigger value="all">All Users</TabsTrigger>
@@ -895,9 +953,14 @@ export function AdminUserTable({ initialRole = "" }: AdminUserTableProps) {
                               pre-registered
                             </Badge>
                           )}
-                          {user.profileStatus === "pending_approval" && (
+                          {user.pendingType === "profile_change" && (
                             <Badge className="bg-yellow-100 text-yellow-800 text-[10px] px-1 py-0 h-4 gap-0.5">
-                              <Clock className="h-2.5 w-2.5" /> Pending Approval
+                              <Clock className="h-2.5 w-2.5" /> Profile Change Pending
+                            </Badge>
+                          )}
+                          {user.pendingType === "unassigned_role" && (
+                            <Badge className="bg-orange-100 text-orange-800 text-[10px] px-1 py-0 h-4 gap-0.5">
+                              <Clock className="h-2.5 w-2.5" /> Role Assignment Pending
                             </Badge>
                           )}
                         </div>
@@ -932,6 +995,9 @@ export function AdminUserTable({ initialRole = "" }: AdminUserTableProps) {
                   {/* Actions */}
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      {user.pendingType === "unassigned_role" && (
+                        <AssignRoleAction user={user} onUpdate={handleUserUpdate} />
+                      )}
                       <Button variant="ghost" size="sm" asChild className="h-8 px-2">
                         <Link href={`/dashboard/admin/users/${user.clerkUserId}/profile`}>
                           <Eye className="h-4 w-4 mr-1" /> Profile

@@ -31,10 +31,11 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit
 
     const filter: Record<string, unknown> = {}
+    const andConditions: Record<string, unknown>[] = []
 
     if (search) {
       const regex = new RegExp(search, "i")
-      filter.$or = [{ email: regex }, { firstName: regex }, { lastName: regex }]
+      andConditions.push({ $or: [{ email: regex }, { firstName: regex }, { lastName: regex }] })
     }
 
     if (role === "unassigned") {
@@ -49,8 +50,16 @@ export async function GET(req: NextRequest) {
     }
 
     const profileStatus = searchParams.get("profileStatus") || ""
-    if (profileStatus === "pending_approval" || profileStatus === "active") {
-      filter.profileStatus = profileStatus
+    if (profileStatus === "pending_approval") {
+      // "Pending Approval" covers two distinct cases: users awaiting a profile
+      // change approval, and users who signed up but have no role assigned yet.
+      andConditions.push({ $or: [{ profileStatus: "pending_approval" }, { roleAssigned: false }] })
+    } else if (profileStatus === "active") {
+      filter.profileStatus = "active"
+    }
+
+    if (andConditions.length > 0) {
+      filter.$and = andConditions
     }
 
     const [users, total] = await Promise.all([
@@ -58,9 +67,19 @@ export async function GET(req: NextRequest) {
       User.countDocuments(filter),
     ])
 
+    const data = users.map((u) => ({
+      ...u,
+      pendingType:
+        u.profileStatus === "pending_approval"
+          ? "profile_change"
+          : !u.roleAssigned
+          ? "unassigned_role"
+          : undefined,
+    }))
+
     return NextResponse.json(
       {
-        data: users,
+        data,
         pagination: {
           total,
           page,
