@@ -67,6 +67,7 @@ type TesterWorkStatus = "assigned" | "accepted" | "working" | "done" | "removed"
 
 interface AssignedTester {
   testerId: string;
+  testerName?: string;
   role: TesterRole;
   workStatus: TesterWorkStatus;
   assignedAt: string;
@@ -88,6 +89,7 @@ interface StatusHistoryItem {
 interface AuditRequest {
   _id: string;
   customerId: string;
+  customerName?: string;
   projectName: string;
   serviceCategory: ServiceCategory;
   targetUrl: string;
@@ -973,8 +975,8 @@ export default function AdminProjectDetailPage() {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Customer ID</p>
-                        <p className="font-semibold">{item.customerId}</p>
+                        <p className="text-sm text-muted-foreground">Customer</p>
+                        <p className="font-semibold">{item.customerName ?? item.customerId}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Service Category</p>
@@ -1067,7 +1069,7 @@ export default function AdminProjectDetailPage() {
                       <div className="space-y-3">
                         {activeTesters.map((tester, idx) => {
                           const info = testerMap[tester.testerId];
-                          const name = testerDisplayName(info, tester.testerId);
+                          const name = tester.testerName || testerDisplayName(info, tester.testerId);
                           const initials = name.slice(0, 2).toUpperCase();
                           const progress = tester.progressPercent ?? 0;
 

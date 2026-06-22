@@ -37,7 +37,18 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return NextResponse.json({ data: { ...item, myTesterEntry: testerEntry } }, { status: 200 });
+    const customer = await User.findOne(
+      { clerkUserId: item.customerId },
+      { firstName: 1, lastName: 1, email: 1 }
+    ).lean();
+    const customerName = customer
+      ? `${customer.firstName ?? ""} ${customer.lastName ?? ""}`.trim() || customer.email || item.customerId
+      : item.customerId;
+
+    return NextResponse.json(
+      { data: { ...item, customerName, myTesterEntry: testerEntry } },
+      { status: 200 }
+    );
   } catch (err) {
     console.error("[GET /api/tester/tasks/[id]]", err);
     return NextResponse.json({ error: "Failed to fetch task" }, { status: 500 });

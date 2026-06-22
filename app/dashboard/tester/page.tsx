@@ -114,6 +114,7 @@ interface Scenario {
 interface Task {
   _id: string
   customerId: string
+  customerName?: string
   projectName: string
   serviceCategory: ServiceCategory
   targetUrl: string
@@ -349,8 +350,8 @@ function TaskCard({
             </Badge>
           </div>
 
-          {/* Customer ID */}
-          <p className="text-xs text-muted-foreground mb-2">{task.customerId}</p>
+          {/* Customer */}
+          <p className="text-xs text-muted-foreground mb-2">{task.customerName ?? task.customerId}</p>
 
           {/* Standard + Package */}
           <p className="text-sm text-muted-foreground">
@@ -886,7 +887,7 @@ export default function TesterDashboardPage() {
                 <div className="flex-1 overflow-y-auto">
                   {/* Overview */}
                   <TabsContent value="overview" className="p-6 space-y-4 mt-0">
-                    <InfoRow label="Customer" value={selectedTask.customerId} />
+                    <InfoRow label="Customer" value={selectedTask.customerName ?? selectedTask.customerId} />
                     <InfoRow
                       label="Target URL / Address"
                       value={selectedTask.targetUrl || selectedTask.locationAddress || "—"}

@@ -32,6 +32,7 @@ type TesterWorkStatus = "assigned" | "accepted" | "working" | "done" | "removed"
 
 type AssignedTester = {
   testerId: string;
+  testerName?: string;
   role: TesterRole;
   workStatus: TesterWorkStatus;
   assignedAt: string;
@@ -44,6 +45,7 @@ type AssignedTester = {
 type AdminAuditItem = {
   _id: string;
   customerId: string;
+  customerName?: string;
   projectName: string;
   status: ProjectStatus;
 
@@ -175,8 +177,8 @@ export default function AdminDashboard() {
   const renderAssignedTesters = (assigned: AssignedTester[]) => {
     if (!assigned?.length) return <span className="text-muted-foreground italic">{t.admin.dashboard.notAssigned}</span>;
 
-    const lead = assigned.find((t) => t.role === "lead");
-    const shown = lead?.testerId || assigned[0].testerId;
+    const lead = assigned.find((t) => t.role === "lead") || assigned[0];
+    const shown = lead.testerName || lead.testerId;
     const extra = assigned.length - 1;
 
     return (
@@ -359,7 +361,7 @@ lll
                       return (
                         <TableRow key={p._id} className="border-border hover:bg-muted/50">
                           <TableCell className="font-medium text-foreground">{p.projectName}</TableCell>
-                          <TableCell className="text-foreground">{p.customerId}</TableCell>
+                          <TableCell className="text-foreground">{p.customerName ?? p.customerId}</TableCell>
                           <TableCell>{renderAssignedTesters(p.assignedTesters)}</TableCell>
 
                           <TableCell>

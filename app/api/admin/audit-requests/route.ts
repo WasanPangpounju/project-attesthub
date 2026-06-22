@@ -19,7 +19,35 @@ export async function GET() {
     }
 
     const items = await AuditRequest.find({}).sort({ createdAt: -1 }).lean();
-    return NextResponse.json({ items });
+
+    const userIds = new Set<string>();
+    for (const item of items) {
+      userIds.add(item.customerId);
+      for (const t of item.assignedTesters ?? []) userIds.add(t.testerId);
+    }
+
+    const users = await User.find(
+      { clerkUserId: { $in: [...userIds] } },
+      { clerkUserId: 1, firstName: 1, lastName: 1, email: 1 }
+    ).lean();
+
+    const userMap = new Map(users.map((u) => [u.clerkUserId, u]));
+    const nameOf = (id: string) => {
+      const u = userMap.get(id);
+      if (!u) return id;
+      return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || id;
+    };
+
+    const data = items.map((item) => ({
+      ...item,
+      customerName: nameOf(item.customerId),
+      assignedTesters: (item.assignedTesters ?? []).map((t: { testerId: string }) => ({
+        ...t,
+        testerName: nameOf(t.testerId),
+      })),
+    }));
+
+    return NextResponse.json({ items: data });
   } catch (err) {
     console.error("[GET /api/admin/audit-requests]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

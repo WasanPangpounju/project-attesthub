@@ -45,8 +45,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const customerIds = [...new Set(items.map((item) => item.customerId))];
+    const customers = await User.find(
+      { clerkUserId: { $in: customerIds } },
+      { clerkUserId: 1, firstName: 1, lastName: 1, email: 1 }
+    ).lean();
+    const customerMap = new Map(customers.map((u) => [u.clerkUserId, u]));
+    const nameOf = (id: string) => {
+      const u = customerMap.get(id);
+      if (!u) return id;
+      return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || id;
+    };
+
     const data = items.map((item) => ({
       ...item,
+      customerName: nameOf(item.customerId),
       myTesterEntry: item.assignedTesters.find((t) => t.testerId === userId),
     }));
 
