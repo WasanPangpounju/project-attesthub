@@ -8,8 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { RoleGuard } from "@/components/role-guard";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { toast } from "sonner";
 import {
   LayoutDashboard,
   Users,
@@ -24,6 +36,7 @@ import {
   X,
   UserCircle,
   Globe,
+  Trash2,
 } from "lucide-react";
 
 type ProjectStatus = "pending" | "open" | "in_review" | "scheduled" | "completed" | "cancelled";
@@ -108,35 +121,48 @@ export default function AdminDashboard() {
   const [items, setItems] = useState<AdminAuditItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function loadProjects() {
+    try {
+      setLoading(true);
+      setErrorMsg(null);
+
+      const res = await fetch("/api/admin/audit-requests", { cache: "no-store" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `Request failed (${res.status})`);
+      }
+
+      const data = (await res.json()) as { items: AdminAuditItem[] };
+      setItems(Array.isArray(data.items) ? data.items : []);
+    } catch (e: any) {
+      setErrorMsg(e?.message || "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        setLoading(true);
-        setErrorMsg(null);
-
-        const res = await fetch("/api/admin/audit-requests", { cache: "no-store" });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data?.error || `Request failed (${res.status})`);
-        }
-
-        const data = (await res.json()) as { items: AdminAuditItem[] };
-        if (!cancelled) setItems(Array.isArray(data.items) ? data.items : []);
-      } catch (e: any) {
-        if (!cancelled) setErrorMsg(e?.message || "Failed to load data");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
+    loadProjects();
   }, []);
+
+  async function handleDeleteProject(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/audit-requests/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `Request failed (${res.status})`);
+      }
+      toast.success("Project deleted");
+      await loadProjects();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to delete project");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const filteredProjects = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -201,7 +227,7 @@ export default function AdminDashboard() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
-lll
+
       {/* Sidebar */}
       <aside
         className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 border-r border-border bg-sidebar transition-transform lg:translate-x-0 ${
@@ -391,11 +417,44 @@ lll
                           </TableCell>
 
                           <TableCell className="text-right">
-                            <Button asChild variant="outline" size="sm">
-                              <Link href={`/dashboard/admin/projects/${p._id}`} aria-label={`View project ${p.projectName}`}>
-                                View
-                              </Link>
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button asChild variant="outline" size="sm">
+                                <Link href={`/dashboard/admin/projects/${p._id}`} aria-label={`View project ${p.projectName}`}>
+                                  View
+                                </Link>
+                              </Button>
+
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-destructive text-destructive hover:bg-destructive/10"
+                                    aria-label={`Delete project ${p.projectName}`}
+                                    disabled={deletingId === p._id}
+                                  >
+                                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete project?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete &quot;{p.projectName}&quot; along with its scenarios and test cases. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      onClick={() => handleDeleteProject(p._id)}
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );

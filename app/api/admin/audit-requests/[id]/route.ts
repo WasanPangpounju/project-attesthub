@@ -4,6 +4,8 @@ import dbConnect from "@/lib/mongodb";
 import mongoose from "mongoose";
 import AuditRequest from "@/models/audit-request";
 import User from "@/models/User";
+import Scenario from "@/models/scenario";
+import TestCase from "@/models/test-case";
 
 export const runtime = "nodejs";
 
@@ -105,6 +107,53 @@ export async function GET(req: Request, ctx: any) {
     };
 
     return NextResponse.json({ item: data });
+  } catch (err: any) {
+    return NextResponse.json(
+      {
+        error: "Server error",
+        message: err?.message || String(err),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request, ctx: any) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const caller = await User.findOne({ clerkUserId: userId }).lean();
+    if (!caller || caller.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const rawFromParams = ctx?.params?.id;
+    const requestedId = normalizeId(rawFromParams || getIdFromUrl(req));
+
+    if (!requestedId || !isHexObjectId(requestedId)) {
+      return NextResponse.json(
+        { error: "Bad Request", message: "Missing or invalid id param" },
+        { status: 400 }
+      );
+    }
+
+    const existing = await AuditRequest.findById(requestedId).lean();
+    if (!existing) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    await Promise.all([
+      AuditRequest.findByIdAndDelete(requestedId),
+      Scenario.deleteMany({ auditRequestId: requestedId }),
+      TestCase.deleteMany({ auditRequestId: requestedId }),
+    ]);
+
+    return NextResponse.json({ message: "Deleted" }, { status: 200 });
   } catch (err: any) {
     return NextResponse.json(
       {
