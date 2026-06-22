@@ -34,7 +34,31 @@ export async function GET(
       (request.orgMembers ?? []).includes(userId)
     if (!hasAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    return NextResponse.json({ data: request }, { status: 200 })
+    const userIds = new Set<string>([request.customerId])
+    for (const t of request.assignedTesters ?? []) userIds.add(t.testerId)
+
+    const users = await User.find(
+      { clerkUserId: { $in: [...userIds] } },
+      { clerkUserId: 1, firstName: 1, lastName: 1, email: 1 }
+    ).lean()
+
+    const userMap = new Map(users.map((u) => [u.clerkUserId, u]))
+    const nameOf = (id: string) => {
+      const u = userMap.get(id)
+      if (!u) return id
+      return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || id
+    }
+
+    const data = {
+      ...request,
+      customerName: nameOf(request.customerId),
+      assignedTesters: (request.assignedTesters ?? []).map((t: { testerId: string }) => ({
+        ...t,
+        testerName: nameOf(t.testerId),
+      })),
+    }
+
+    return NextResponse.json({ data }, { status: 200 })
   } catch (err) {
     console.error("[GET /api/audit-requests/[id]]", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
