@@ -1,4 +1,5 @@
 import { Schema, model, models } from "mongoose"
+import type { IGuestScanAiSummary } from "./GuestScanReport"
 
 export interface IAuditReport {
   _id: string
@@ -28,6 +29,8 @@ export interface IAuditReport {
   }[]
   pagesScanned: number
   scanDurationMs: number
+  aiSummary?: IGuestScanAiSummary
+  aiSummaryError?: string
   errorMessage?: string
   jobId?: string
   requestedBy: string
@@ -72,6 +75,16 @@ const AuditReportSchema = new Schema<IAuditReport>(
     issues: { type: [IssueSchema], default: [] },
     pagesScanned: { type: Number, default: 0 },
     scanDurationMs: { type: Number, default: 0 },
+    aiSummary: {
+      overview: { type: String },
+      topIssues: { type: [String], default: [] },
+      recommendations: { type: [String], default: [] },
+      urgency: {
+        type: String,
+        enum: ["ด่วนมาก", "ด่วน", "ควรแก้ไข", "แนะนำ"],
+      },
+    },
+    aiSummaryError: { type: String },
     errorMessage: { type: String },
     jobId: { type: String },
     requestedBy: { type: String, required: true, index: true },

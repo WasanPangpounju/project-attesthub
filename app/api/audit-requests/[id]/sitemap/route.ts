@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
 import AuditRequest, { AssignedTester } from "@/models/audit-request";
 import ProjectSitemap, { ISitemapUrl } from "@/models/ProjectSitemap";
+import { isSameDomain } from "@/lib/domain-validator";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,7 @@ async function loadAccess(id: string, userId: string) {
   return {
     user,
     auditRequest,
+    isAdmin,
     canView: isAdmin || isOwner || isOrgMember || isAssignedTester,
     canEdit: isAdmin || isOwner,
   };
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
-    const { auditRequest, canEdit } = await loadAccess(id, userId);
+    const { auditRequest, canEdit, isAdmin } = await loadAccess(id, userId);
     if (!auditRequest) return NextResponse.json({ error: "Project not found" }, { status: 404 });
     if (!canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
@@ -110,6 +112,14 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       new URL(url);
     } catch {
       return NextResponse.json({ error: "Invalid URL format" }, { status: 400 });
+    }
+
+    if (!isAdmin && !isSameDomain(auditRequest.targetUrl, url)) {
+      const targetHost = new URL(auditRequest.targetUrl).hostname.replace(/^www\./, "");
+      return NextResponse.json(
+        { error: `URL ต้องอยู่ใน domain เดียวกับโปรเจกต์ (${targetHost})` },
+        { status: 400 }
+      );
     }
 
     let sitemap = await ProjectSitemap.findOne({ auditRequestId: id });

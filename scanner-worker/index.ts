@@ -3,7 +3,9 @@ import { Worker, type ConnectionOptions } from 'bullmq';
 import IORedis from 'ioredis';
 import mongoose from 'mongoose';
 import { runGuestScan } from './crawler';
+import { runAuditUrlScan } from './audit-scan-worker';
 import type { GuestScanJobData } from '../lib/queue/guestScanQueue';
+import type { AuditScanJobData } from '../lib/queue/scanQueue';
 
 // ── MongoDB ──────────────────────────────────────────────
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -54,9 +56,38 @@ async function main() {
 
   console.log('[worker] guest-scan worker started, waiting for jobs...');
 
+  // ── audit-scan Worker (sitemap URL scans) ──────────────────
+  const auditScanWorker = new Worker<AuditScanJobData>(
+    'audit-scan',
+    async (job) => {
+      console.log(`[audit-scan] processing job ${job.id} — reportId=${job.data.reportId}`);
+      await runAuditUrlScan(job.data);
+    },
+    {
+      connection,
+      lockDuration: 300_000,
+      concurrency: 1,
+    }
+  );
+
+  auditScanWorker.on('completed', (job) => {
+    console.log(`[audit-scan] job ${job.id} completed`);
+  });
+
+  auditScanWorker.on('failed', (job, err) => {
+    console.error(`[audit-scan] job ${job?.id} failed:`, err.message);
+  });
+
+  auditScanWorker.on('error', (err) => {
+    console.error('[audit-scan] error:', err);
+  });
+
+  console.log('[worker] audit-scan worker started, waiting for jobs...');
+
   async function shutdown() {
     console.log('[worker] shutting down...');
     await worker.close();
+    await auditScanWorker.close();
     await mongoose.disconnect();
     process.exit(0);
   }

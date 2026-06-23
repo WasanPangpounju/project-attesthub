@@ -11,3 +11,11 @@ export interface ScanJobData {
   auditRequestId: string
   reportId: string // AuditReport _id ที่สร้างไว้แล้ว
 }
+
+export type AuditScanJobData = {
+  type: "sitemap_url"
+  auditRequestId: string
+  sitemapUrlId: string
+  url: string
+  reportId: string
+}

@@ -67,6 +67,7 @@ import {
   Link2,
   Plus,
   Trash2,
+  Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/useTranslation"
@@ -469,6 +470,8 @@ export default function CustomerProjectDetailPage() {
   const [deleteUrlId, setDeleteUrlId] = useState<string | null>(null)
   const [deletingUrl, setDeletingUrl] = useState(false)
 
+  const [scanning, setScanning] = useState(false)
+
   const commentInputRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch project
@@ -687,6 +690,31 @@ export default function CustomerProjectDetailPage() {
     } finally {
       setDeletingUrl(false)
       setDeleteUrlId(null)
+    }
+  }
+
+  async function handleScanAll() {
+    if (!id) return
+    setScanning(true)
+    try {
+      const res = await fetch(`/api/audit-requests/${id}/sitemap/scan`, {
+        method: "POST",
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        if (Array.isArray(json.invalidUrls) && json.invalidUrls.length > 0) {
+          toast.error(`URL เหล่านี้ไม่อยู่ใน domain ของโปรเจกต์ (${json.allowedDomain}): ${json.invalidUrls.join(", ")}`)
+        } else {
+          throw new Error(json.error || "Failed to start scan")
+        }
+        return
+      }
+      toast.success(`เริ่มสแกน ${json.queued} URL แล้ว`)
+      setSitemapFetched(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to start scan")
+    } finally {
+      setScanning(false)
     }
   }
 
@@ -1298,6 +1326,20 @@ export default function CustomerProjectDetailPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">{sitemapUrls.length} URL(s) tracked</p>
                     <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={handleScanAll}
+                        disabled={scanning || sitemapUrls.length === 0}
+                      >
+                        {scanning ? (
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Zap className="h-4 w-4" aria-hidden="true" />
+                        )}
+                        สแกน
+                      </Button>
                       <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowFetchDialog(true)}>
                         <Globe className="h-4 w-4" aria-hidden="true" />
                         นำเข้า Sitemap XML
