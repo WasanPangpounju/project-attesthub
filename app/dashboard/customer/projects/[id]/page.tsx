@@ -14,6 +14,33 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import {
   ArrowLeft,
@@ -36,6 +63,10 @@ import {
   X,
   Share2,
   Copy,
+  Globe,
+  Link2,
+  Plus,
+  Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/useTranslation"
@@ -64,6 +95,17 @@ type FileRef = {
   name: string
   size: number
   type: string
+}
+
+type SitemapUrlEntry = {
+  _id: string
+  url: string
+  label?: string
+  addedBy: string
+  addedByName?: string
+  addedAt: string
+  lastScanAt?: string
+  auditReportId?: string
 }
 
 type AuditRequest = {
@@ -406,6 +448,27 @@ export default function CustomerProjectDetailPage() {
   // Share token
   const [generatingShare, setGeneratingShare] = useState(false)
 
+  // Sitemap
+  const [sitemapOpen, setSitemapOpen] = useState(false)
+  const [sitemapUrls, setSitemapUrls] = useState<SitemapUrlEntry[]>([])
+  const [sitemapLoading, setSitemapLoading] = useState(false)
+  const [sitemapFetched, setSitemapFetched] = useState(false)
+
+  const [showAddUrlDialog, setShowAddUrlDialog] = useState(false)
+  const [newUrl, setNewUrl] = useState("")
+  const [newLabel, setNewLabel] = useState("")
+  const [addingUrl, setAddingUrl] = useState(false)
+
+  const [showFetchDialog, setShowFetchDialog] = useState(false)
+  const [fetchSitemapUrl, setFetchSitemapUrl] = useState("")
+  const [fetchedUrls, setFetchedUrls] = useState<string[]>([])
+  const [selectedFetchUrls, setSelectedFetchUrls] = useState<Set<string>>(new Set())
+  const [fetchingXml, setFetchingXml] = useState(false)
+  const [importingUrls, setImportingUrls] = useState(false)
+
+  const [deleteUrlId, setDeleteUrlId] = useState<string | null>(null)
+  const [deletingUrl, setDeletingUrl] = useState(false)
+
   const commentInputRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch project
@@ -559,6 +622,119 @@ export default function CustomerProjectDetailPage() {
       setProject((prev) => prev ? { ...prev, shareToken: undefined } : prev)
       toast.success(cp.revoke)
     } catch { toast.error("Failed to revoke") }
+  }
+
+  // Fetch sitemap on first expand
+  useEffect(() => {
+    if (!id || !sitemapOpen || sitemapFetched) return
+    let cancelled = false
+
+    async function load() {
+      setSitemapLoading(true)
+      try {
+        const res = await fetch(`/api/audit-requests/${id}/sitemap`, { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to fetch sitemap")
+        const json = await res.json()
+        if (!cancelled) {
+          setSitemapUrls(Array.isArray(json.data?.urls) ? json.data.urls : [])
+          setSitemapFetched(true)
+        }
+      } catch {
+        if (!cancelled) toast.error("Failed to load sitemap")
+      } finally {
+        if (!cancelled) setSitemapLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [id, sitemapOpen, sitemapFetched])
+
+  async function handleAddUrl() {
+    if (!id || !newUrl) return
+    setAddingUrl(true)
+    try {
+      const res = await fetch(`/api/audit-requests/${id}/sitemap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: newUrl, label: newLabel || undefined }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Failed to add URL")
+      setSitemapUrls(json.data.urls)
+      setShowAddUrlDialog(false)
+      setNewUrl("")
+      setNewLabel("")
+      toast.success("URL added")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to add URL")
+    } finally {
+      setAddingUrl(false)
+    }
+  }
+
+  async function handleDeleteUrl(urlId: string) {
+    if (!id) return
+    setDeletingUrl(true)
+    try {
+      const res = await fetch(`/api/audit-requests/${id}/sitemap/${urlId}`, { method: "DELETE" })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Failed to delete URL")
+      setSitemapUrls(json.data.urls)
+      toast.success("URL removed")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete URL")
+    } finally {
+      setDeletingUrl(false)
+      setDeleteUrlId(null)
+    }
+  }
+
+  async function handleFetchXml() {
+    if (!id || !fetchSitemapUrl) return
+    setFetchingXml(true)
+    try {
+      const res = await fetch(`/api/audit-requests/${id}/sitemap/fetch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sitemapUrl: fetchSitemapUrl }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Failed to fetch sitemap")
+      setFetchedUrls(json.urls)
+      setSelectedFetchUrls(new Set(json.urls))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to fetch sitemap")
+    } finally {
+      setFetchingXml(false)
+    }
+  }
+
+  async function handleImportSelected() {
+    if (!id || selectedFetchUrls.size === 0) return
+    setImportingUrls(true)
+    try {
+      for (const url of selectedFetchUrls) {
+        const res = await fetch(`/api/audit-requests/${id}/sitemap`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        })
+        if (res.ok) {
+          const json = await res.json()
+          setSitemapUrls(json.data.urls)
+        }
+      }
+      setShowFetchDialog(false)
+      setFetchSitemapUrl("")
+      setFetchedUrls([])
+      setSelectedFetchUrls(new Set())
+      toast.success("URLs imported")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to import URLs")
+    } finally {
+      setImportingUrls(false)
+    }
   }
 
   async function handlePostComment() {
@@ -1095,6 +1271,228 @@ export default function CustomerProjectDetailPage() {
                   </ul>
                 )}
               </CardContent>
+            </Card>
+
+            {/* ── Section 5.7: Sitemap (collapsible) ─────────────────────────── */}
+            <Card>
+              <button
+                type="button"
+                className="w-full flex items-center justify-between p-6 text-left hover:bg-muted/30 transition-colors rounded-lg"
+                onClick={() => setSitemapOpen((o) => !o)}
+                aria-expanded={sitemapOpen}
+              >
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-primary" aria-hidden="true" />
+                  <CardTitle className="text-base">Sitemap</CardTitle>
+                </div>
+                {sitemapOpen ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                )}
+              </button>
+
+              {sitemapOpen && (
+                <CardContent className="pt-0 space-y-4">
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">{sitemapUrls.length} URL(s) tracked</p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowFetchDialog(true)}>
+                        <Globe className="h-4 w-4" aria-hidden="true" />
+                        นำเข้า Sitemap XML
+                      </Button>
+                      <Button size="sm" className="gap-2" onClick={() => setShowAddUrlDialog(true)}>
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                        เพิ่ม URL
+                      </Button>
+                    </div>
+                  </div>
+
+                  {sitemapLoading ? (
+                    <div className="space-y-3">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                      ))}
+                    </div>
+                  ) : sitemapUrls.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Link2 className="mx-auto h-10 w-10 mb-2 opacity-30" aria-hidden="true" />
+                      <p className="text-sm">ยังไม่มี URL</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>URL</TableHead>
+                          <TableHead>Label</TableHead>
+                          <TableHead>เพิ่มโดย</TableHead>
+                          <TableHead>วันที่เพิ่ม</TableHead>
+                          <TableHead>สถานะ Scan</TableHead>
+                          <TableHead className="w-10" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sitemapUrls.map((entry) => (
+                          <TableRow key={entry._id}>
+                            <TableCell className="max-w-xs truncate">
+                              <a
+                                href={entry.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                {entry.url}
+                              </a>
+                            </TableCell>
+                            <TableCell>{entry.label || "—"}</TableCell>
+                            <TableCell>{entry.addedByName ?? entry.addedBy}</TableCell>
+                            <TableCell>{formatDate(entry.addedAt)}</TableCell>
+                            <TableCell>
+                              {entry.lastScanAt ? (
+                                <Badge variant="outline">Scanned {formatDate(entry.lastScanAt)}</Badge>
+                              ) : (
+                                <Badge variant="secondary">Not scanned</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteUrlId(entry._id)}
+                                aria-label={`Remove ${entry.url}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+
+                  {/* Add URL Dialog */}
+                  <Dialog open={showAddUrlDialog} onOpenChange={setShowAddUrlDialog}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>เพิ่ม URL</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="new-url">URL</Label>
+                          <Input
+                            id="new-url"
+                            placeholder="https://example.com/page"
+                            value={newUrl}
+                            onChange={(e) => setNewUrl(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="new-label">Label (ไม่บังคับ)</Label>
+                          <Input
+                            id="new-label"
+                            placeholder="หน้าแรก"
+                            value={newLabel}
+                            onChange={(e) => setNewLabel(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAddUrlDialog(false)}>ยกเลิก</Button>
+                        <Button onClick={handleAddUrl} disabled={!newUrl || addingUrl} className="gap-2">
+                          {addingUrl && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                          เพิ่ม
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Import Sitemap XML Dialog */}
+                  <Dialog
+                    open={showFetchDialog}
+                    onOpenChange={(open) => {
+                      setShowFetchDialog(open)
+                      if (!open) {
+                        setFetchSitemapUrl("")
+                        setFetchedUrls([])
+                        setSelectedFetchUrls(new Set())
+                      }
+                    }}
+                  >
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>นำเข้า Sitemap XML</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="https://example.com/sitemap.xml"
+                            value={fetchSitemapUrl}
+                            onChange={(e) => setFetchSitemapUrl(e.target.value)}
+                          />
+                          <Button onClick={handleFetchXml} disabled={!fetchSitemapUrl || fetchingXml} className="gap-2 shrink-0">
+                            {fetchingXml && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                            Fetch
+                          </Button>
+                        </div>
+                        {fetchedUrls.length > 0 && (
+                          <div className="max-h-80 overflow-y-auto border rounded-lg divide-y">
+                            {fetchedUrls.map((url) => (
+                              <label key={url} className="flex items-center gap-2 p-2 text-sm cursor-pointer hover:bg-muted/50">
+                                <Checkbox
+                                  checked={selectedFetchUrls.has(url)}
+                                  onCheckedChange={(checked) => {
+                                    setSelectedFetchUrls((prev) => {
+                                      const next = new Set(prev)
+                                      if (checked) next.add(url); else next.delete(url)
+                                      return next
+                                    })
+                                  }}
+                                />
+                                <span className="truncate">{url}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowFetchDialog(false)}>ยกเลิก</Button>
+                        <Button
+                          onClick={handleImportSelected}
+                          disabled={selectedFetchUrls.size === 0 || importingUrls}
+                          className="gap-2"
+                        >
+                          {importingUrls && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                          นำเข้า {selectedFetchUrls.size > 0 ? `(${selectedFetchUrls.size})` : ""}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Delete URL Confirmation */}
+                  <AlertDialog open={!!deleteUrlId} onOpenChange={(open) => { if (!open) setDeleteUrlId(null) }}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>ลบ URL</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          คุณแน่ใจหรือไม่ว่าต้องการลบ URL นี้จาก sitemap?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive hover:bg-destructive/90"
+                          onClick={() => { if (deleteUrlId) handleDeleteUrl(deleteUrlId) }}
+                          disabled={deletingUrl}
+                        >
+                          {deletingUrl ? "กำลังลบ…" : "ลบ"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              )}
             </Card>
 
             {/* ── Section 6: Project Details (collapsible) ──────────────────── */}
