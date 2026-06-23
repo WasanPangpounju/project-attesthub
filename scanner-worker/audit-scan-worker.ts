@@ -1,8 +1,7 @@
 import { chromium } from 'playwright';
 import axeSource from 'axe-core';
 import mongoose from 'mongoose';
-import AuditReport, { IAuditReport } from '../models/AuditReport';
-import ProjectSitemap from '../models/ProjectSitemap';
+import type { IAuditReport } from '../models/AuditReport';
 import { generateAiSummary } from './ai-summary';
 import type { AuditScanJobData } from '../lib/queue/scanQueue';
 
@@ -50,8 +49,12 @@ export async function runAuditUrlScan(data: AuditScanJobData): Promise<void> {
   await mongoose.connection.asPromise();
   console.log('[audit-scan-worker] mongoose readyState after wait:', mongoose.connection.readyState);
 
+  const reportsCol = mongoose.connection.db!.collection('auditreports');
+  const sitemapsCol = mongoose.connection.db!.collection('projectsitemaps');
+  const reportObjectId = new mongoose.Types.ObjectId(reportId);
+
   try {
-    await AuditReport.findByIdAndUpdate(reportId, { status: 'scanning' });
+    await reportsCol.updateOne({ _id: reportObjectId }, { $set: { status: 'scanning' } });
 
     browser = await chromium.launch({
       headless: true,
@@ -137,21 +140,23 @@ export async function runAuditUrlScan(data: AuditScanJobData): Promise<void> {
 
     const scanDurationMs = Date.now() - startTime;
 
-    await AuditReport.findByIdAndUpdate(reportId, {
-      status: 'completed',
-      score,
-      wcagLevel,
-      summary,
-      issues,
-      ...(aiSummary ? { aiSummary } : {}),
-      ...(aiSummaryError ? { aiSummaryError } : {}),
-      pagesScanned: 1,
-      scanDurationMs,
-      completedAt: new Date(),
+    await reportsCol.updateOne({ _id: reportObjectId }, {
+      $set: {
+        status: 'completed',
+        score,
+        wcagLevel,
+        summary,
+        issues,
+        ...(aiSummary ? { aiSummary } : {}),
+        ...(aiSummaryError ? { aiSummaryError } : {}),
+        pagesScanned: 1,
+        scanDurationMs,
+        completedAt: new Date(),
+      },
     });
 
-    await ProjectSitemap.updateOne(
-      { auditRequestId, 'urls._id': sitemapUrlId },
+    await sitemapsCol.updateOne(
+      { auditRequestId, 'urls._id': new mongoose.Types.ObjectId(sitemapUrlId) },
       { $set: { 'urls.$.lastScanAt': new Date(), 'urls.$.auditReportId': reportId } }
     );
 
@@ -166,9 +171,8 @@ export async function runAuditUrlScan(data: AuditScanJobData): Promise<void> {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error(`[audit-scan-worker] ${reportId} failed:`, errorMessage);
 
-    await AuditReport.findByIdAndUpdate(reportId, {
-      status: 'failed',
-      errorMessage,
+    await reportsCol.updateOne({ _id: reportObjectId }, {
+      $set: { status: 'failed', errorMessage },
     }).catch(() => null);
   }
 }
