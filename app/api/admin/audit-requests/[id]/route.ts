@@ -118,7 +118,10 @@ export async function GET(req: Request, ctx: any) {
   }
 }
 
-export async function DELETE(req: Request, ctx: any) {
+export async function DELETE(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -132,25 +135,24 @@ export async function DELETE(req: Request, ctx: any) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const rawFromParams = ctx?.params?.id;
-    const requestedId = normalizeId(rawFromParams || getIdFromUrl(req));
+    const { id } = await ctx.params;
 
-    if (!requestedId || !isHexObjectId(requestedId)) {
+    if (!id || !isHexObjectId(id)) {
       return NextResponse.json(
         { error: "Bad Request", message: "Missing or invalid id param" },
         { status: 400 }
       );
     }
 
-    const existing = await AuditRequest.findById(requestedId).lean();
+    const existing = await AuditRequest.findById(id).lean();
     if (!existing) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     await Promise.all([
-      AuditRequest.findByIdAndDelete(requestedId),
-      Scenario.deleteMany({ auditRequestId: requestedId }),
-      TestCase.deleteMany({ auditRequestId: requestedId }),
+      AuditRequest.findByIdAndDelete(id),
+      Scenario.deleteMany({ auditRequestId: id }),
+      TestCase.deleteMany({ auditRequestId: id }),
     ]);
 
     return NextResponse.json({ message: "Deleted" }, { status: 200 });

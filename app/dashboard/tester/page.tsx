@@ -35,6 +35,7 @@ import {
   ChevronDown,
   ChevronUp,
   GripVertical,
+  ScanSearch,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -109,6 +110,47 @@ interface Scenario {
   assignedTesterId: string
   order: number
   testCases: TestCase[]
+}
+
+interface AuditReportIssue {
+  id: string
+  severity: "critical" | "serious" | "moderate" | "minor"
+  wcagCriteria: string
+  wcagTitle: string
+  element: string
+  description: string
+  recommendation: string
+  pageUrl: string
+  impact: string
+}
+
+interface AuditReportData {
+  _id: string
+  auditRequestId: string
+  projectName: string
+  url: string
+  scanScope: "single" | "full_site"
+  status: "pending" | "scanning" | "completed" | "failed"
+  score: number
+  wcagLevel: "A" | "AA" | "AAA"
+  summary: {
+    passed: number
+    failed: number
+    warnings: number
+    total: number
+  }
+  issues: AuditReportIssue[]
+  aiSummary?: {
+    overview: string
+    topIssues: string[]
+    recommendations: string[]
+    urgency: string
+  }
+  pagesScanned: number
+  scanDurationMs: number
+  errorMessage?: string
+  generatedAt: string
+  completedAt?: string
 }
 
 interface Task {
@@ -211,6 +253,25 @@ const priorityColors: Record<string, string> = {
   high: "bg-orange-100 text-orange-700",
   medium: "bg-yellow-100 text-yellow-700",
   low: "bg-gray-100 text-gray-600",
+}
+
+const severityColors: Record<string, string> = {
+  critical: "bg-red-100 text-red-700",
+  serious: "bg-orange-100 text-orange-700",
+  moderate: "bg-yellow-100 text-yellow-700",
+  minor: "bg-blue-100 text-blue-700",
+}
+
+function scoreColor(score: number) {
+  if (score >= 80) return "text-green-600"
+  if (score >= 60) return "text-yellow-600"
+  return "text-red-600"
+}
+
+function scoreBg(score: number) {
+  if (score >= 80) return "border-green-400"
+  if (score >= 60) return "border-yellow-400"
+  return "border-red-400"
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -489,6 +550,11 @@ export default function TesterDashboardPage() {
   const tcFileInputRef = useRef<HTMLInputElement>(null)
   const [tcFileInputTarget, setTCFileInputTarget] = useState<{ taskId: string; scenarioId: string; tcId: string } | null>(null)
 
+  // Automated scan report
+  const [autoScanReport, setAutoScanReport] = useState<AuditReportData | null>(null)
+  const [autoScanLoading, setAutoScanLoading] = useState(false)
+  const [autoScanError, setAutoScanError] = useState("")
+
   // Cleanup debounce on unmount
   useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
@@ -507,6 +573,27 @@ export default function TesterDashboardPage() {
     return () => { alive = false }
   }, [drawerOpen, selectedTask?._id])
 
+  // Fetch automated scan report when drawer opens
+  useEffect(() => {
+    if (!drawerOpen || !selectedTask) return
+    let alive = true
+    setAutoScanLoading(true)
+    setAutoScanError("")
+    setAutoScanReport(null)
+    fetch(`/api/tester/tasks/${selectedTask._id}/audit-report`, { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}))
+          throw new Error((d as { error?: string })?.error || `Request failed (${res.status})`)
+        }
+        return res.json() as Promise<{ data: AuditReportData }>
+      })
+      .then(({ data }) => { if (alive) setAutoScanReport(data) })
+      .catch((e) => { if (alive) setAutoScanError(e instanceof Error ? e.message : "Failed to load report") })
+      .finally(() => { if (alive) setAutoScanLoading(false) })
+    return () => { alive = false }
+  }, [drawerOpen, selectedTask?._id])
+
   function openDrawer(task: Task) {
     setSelectedTask(task)
     setDrawerComments(task.comments ?? [])
@@ -518,6 +605,8 @@ export default function TesterDashboardPage() {
     setExpandedScenario(null)
     setExpandedTestCase(null)
     setResultNotes({})
+    setAutoScanReport(null)
+    setAutoScanError("")
     setDrawerOpen(true)
   }
 
@@ -881,6 +970,10 @@ export default function TesterDashboardPage() {
                   <TabsTrigger value="testcases" className="gap-1">
                     <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
                     Test Cases
+                  </TabsTrigger>
+                  <TabsTrigger value="autoscan" className="gap-1">
+                    <ScanSearch className="h-3.5 w-3.5" aria-hidden="true" />
+                    ผลตรวจอัตโนมัติ
                   </TabsTrigger>
                 </TabsList>
 
@@ -1378,6 +1471,104 @@ export default function TesterDashboardPage() {
                             </div>
                           )
                         })}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Automated Scan Report */}
+                  <TabsContent value="autoscan" className="p-6 space-y-4 mt-0">
+                    {autoScanLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+                      </div>
+                    ) : autoScanError || !autoScanReport ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <ScanSearch className="h-12 w-12 mb-3 opacity-30" aria-hidden="true" />
+                        <p className="text-sm">ยังไม่มีผลตรวจอัตโนมัติสำหรับงานนี้</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Score + summary */}
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={cn(
+                              "flex flex-col items-center justify-center w-20 h-20 rounded-full border-2 shrink-0",
+                              scoreBg(autoScanReport.score)
+                            )}
+                          >
+                            <span className={cn("text-2xl font-bold leading-none", scoreColor(autoScanReport.score))}>
+                              {autoScanReport.score}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">/100</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{autoScanReport.projectName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{autoScanReport.url}</p>
+                            <div className="flex gap-2 flex-wrap mt-1.5">
+                              <Badge variant="secondary" className="text-xs">WCAG {autoScanReport.wcagLevel}</Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {autoScanReport.pagesScanned} page{autoScanReport.pagesScanned !== 1 ? "s" : ""}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Severity breakdown */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {(["critical", "serious", "moderate", "minor"] as const).map((sev) => {
+                            const count = autoScanReport.issues.filter((i) => i.severity === sev).length
+                            return (
+                              <div key={sev} className={cn("rounded-lg border p-2 text-center", severityColors[sev])}>
+                                <p className="text-lg font-bold">{count}</p>
+                                <p className="text-xs capitalize">{sev}</p>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* AI summary */}
+                        {autoScanReport.aiSummary?.overview && (
+                          <>
+                            <Separator />
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">AI Summary</p>
+                              <p className="text-sm whitespace-pre-wrap">{autoScanReport.aiSummary.overview}</p>
+                            </div>
+                          </>
+                        )}
+
+                        <Separator />
+
+                        {/* Issues list */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">
+                            Issues ({autoScanReport.issues.length})
+                          </p>
+                          {autoScanReport.issues.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-6">No issues found</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {autoScanReport.issues.map((issue) => (
+                                <div key={issue.id} className="border rounded-lg p-3 space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge className={cn("text-xs", severityColors[issue.severity])}>
+                                      {issue.severity}
+                                    </Badge>
+                                    {issue.impact && (
+                                      <span className="text-xs text-muted-foreground">{issue.impact}</span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm">{issue.description}</p>
+                                  {issue.element && (
+                                    <p className="text-xs font-mono text-muted-foreground truncate">{issue.element}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </TabsContent>
