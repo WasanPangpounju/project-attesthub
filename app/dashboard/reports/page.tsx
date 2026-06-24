@@ -18,9 +18,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import type { AuditReport, ReportStatus, WcagLevel } from "@/lib/types/audit-report"
-import { Search, Globe, Plus } from "lucide-react"
+import { Search, Globe, Plus, RefreshCw, Trash2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/useTranslation"
+import { toast } from "sonner"
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -48,7 +59,21 @@ function formatDate(iso: string) {
 
 type R = ReturnType<typeof useTranslation>["t"]["reportsPage"]
 
-function ReportCard({ report, s }: { report: AuditReport; s: R }) {
+function ReportCard({
+  report,
+  s,
+  isAdmin,
+  isRescanning,
+  onRescan,
+  onDeleteRequest,
+}: {
+  report: AuditReport
+  s: R
+  isAdmin: boolean
+  isRescanning: boolean
+  onRescan: (id: string) => void
+  onDeleteRequest: (id: string) => void
+}) {
   const isActive = report.status === "completed"
 
   function statusBadge(status: ReportStatus) {
@@ -116,6 +141,29 @@ function ReportCard({ report, s }: { report: AuditReport; s: R }) {
                 {isActive ? s.viewReport : report.status === "scanning" ? s.badgeScanning : s.view}
               </Button>
             </Link>
+
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={report.status === "scanning" || isRescanning}
+                  onClick={() => onRescan(report.id)}
+                  aria-label={`Rescan ${report.projectName}`}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRescanning ? "animate-spin" : ""}`} />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive"
+                  onClick={() => onDeleteRequest(report.id)}
+                  aria-label={`Delete ${report.projectName}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -136,6 +184,9 @@ function ReportsContent() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [wcagFilter, setWcagFilter] = useState<string>("all")
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [rescanning, setRescanning] = useState<Set<string>>(new Set())
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/profile", { cache: "no-store" })
@@ -144,18 +195,20 @@ function ReportsContent() {
       .catch(() => {})
   }, [])
 
+  function fetchReports() {
+    return fetch("/api/audit-reports")
+      .then((r) => (r.ok ? r.json() : { reports: [] }))
+      .then((json) => {
+        setReports(json.reports ?? [])
+      })
+      .catch(() => {})
+  }
+
   useEffect(() => {
     let cancelled = false
 
     function load() {
-      fetch("/api/audit-reports")
-        .then((r) => (r.ok ? r.json() : { reports: [] }))
-        .then((json) => {
-          if (cancelled) return
-          setReports(json.reports ?? [])
-        })
-        .catch(() => {})
-        .finally(() => { if (!cancelled) setLoading(false) })
+      fetchReports().finally(() => { if (!cancelled) setLoading(false) })
     }
 
     load()
@@ -164,7 +217,7 @@ function ReportsContent() {
     const interval = setInterval(() => {
       setReports((prev) => {
         const hasScanning = prev.some((r) => r.status === "scanning")
-        if (hasScanning) load()
+        if (hasScanning) fetchReports()
         return prev
       })
     }, 10_000)
@@ -174,6 +227,48 @@ function ReportsContent() {
       clearInterval(interval)
     }
   }, [])
+
+  async function handleDelete(reportId: string) {
+    setDeletingId(reportId)
+    try {
+      const res = await fetch(`/api/audit-reports/${reportId}`, { method: "DELETE" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || `Request failed (${res.status})`)
+      }
+      toast.success("ลบรายงานแล้ว")
+      await fetchReports()
+    } catch (e: any) {
+      toast.error(e?.message || "ลบรายงานไม่สำเร็จ")
+    } finally {
+      setPendingDeleteId(null)
+      setDeletingId(null)
+    }
+  }
+
+  async function handleRescan(reportId: string) {
+    setRescanning((prev) => new Set(prev).add(reportId))
+    try {
+      const res = await fetch(`/api/audit-reports/${reportId}/rescan`, { method: "POST" })
+      if (res.status === 409) {
+        toast.error("กำลังสแกนอยู่แล้ว")
+        return
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || `Request failed (${res.status})`)
+      }
+      toast.success("เริ่มสแกนใหม่แล้ว")
+    } catch (e: any) {
+      toast.error(e?.message || "เริ่มสแกนใหม่ไม่สำเร็จ")
+    } finally {
+      setRescanning((prev) => {
+        const next = new Set(prev)
+        next.delete(reportId)
+        return next
+      })
+    }
+  }
 
   const filtered = useMemo(() => {
     let list = reports
@@ -198,8 +293,6 @@ function ReportsContent() {
     return list
   }, [reports, search, statusFilter, wcagFilter])
 
-  const canInitiateScan = role === "admin" || role === "tester"
-
   return (
     <div className="flex-1 flex flex-col">
       <DashboardHeader />
@@ -210,11 +303,13 @@ function ReportsContent() {
             <h1 className="text-3xl font-bold">{s.title}</h1>
             <p className="text-muted-foreground mt-1">{s.subtitle}</p>
           </div>
-          {canInitiateScan && (
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              {s.newScan}
-            </Button>
+          {role === "admin" && (
+            <Link href="/dashboard/admin/scan">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                {s.newScan}
+              </Button>
+            </Link>
           )}
         </div>
 
@@ -272,11 +367,40 @@ function ReportsContent() {
         ) : (
           <div className="space-y-4">
             {filtered.map((report) => (
-              <ReportCard key={report.id} report={report} s={s} />
+              <ReportCard
+                key={report.id}
+                report={report}
+                s={s}
+                isAdmin={role === "admin"}
+                isRescanning={rescanning.has(report.id)}
+                onRescan={handleRescan}
+                onDeleteRequest={setPendingDeleteId}
+              />
             ))}
           </div>
         )}
       </main>
+
+      <AlertDialog open={!!pendingDeleteId} onOpenChange={(open) => { if (!open) setPendingDeleteId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ลบรายงาน</AlertDialogTitle>
+            <AlertDialogDescription>
+              รายงานนี้จะถูกลบถาวร รวมถึงผลการตรวจทั้งหมด ต้องสแกนใหม่ถ้าต้องการผลอีกครั้ง
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingDeleteId(null)}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deletingId === pendingDeleteId}
+              onClick={() => pendingDeleteId && handleDelete(pendingDeleteId)}
+            >
+              ลบ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
