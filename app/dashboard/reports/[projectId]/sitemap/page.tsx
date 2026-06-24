@@ -290,7 +290,7 @@ function SitemapReportContent() {
 
                         <TableCell className="text-right">
                           {report?.status === "completed" ? (
-                            <Link href={`/dashboard/reports/${report._id}`}>
+                            <Link href={`/dashboard/reports/${report._id}?from=${projectId}`}>
                               <Button size="sm" variant="outline">
                                 ดูผล
                               </Button>

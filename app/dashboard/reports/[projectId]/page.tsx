@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { Suspense, useEffect, useMemo, useState } from "react"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
@@ -126,7 +126,10 @@ function IssueRow({ issue, showPage }: { issue: AuditIssue; showPage: boolean })
 function ReportDetailContent() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const id = params.projectId as string
+  const fromProjectId = searchParams.get("from")
+  const backHref = fromProjectId ? `/dashboard/reports/${fromProjectId}/sitemap` : "/dashboard/reports"
   const { user } = useUser()
 
   const [role, setRole] = useState<string | null>(null)
@@ -248,10 +251,10 @@ function ReportDetailContent() {
 
         {/* Back button */}
         <div className="no-print mb-4">
-          <Link href="/dashboard/reports">
+          <Link href={backHref}>
             <Button variant="ghost" size="sm" className="gap-1 -ml-2 text-muted-foreground">
               <ArrowLeft className="h-4 w-4" />
-              Back to Reports
+              {fromProjectId ? "Back to Sitemap Report" : "Back to Reports"}
             </Button>
           </Link>
         </div>
@@ -503,7 +506,9 @@ export default function AIReportDetailPage() {
     <RoleGuard allowedRoles={["admin", "tester", "customer"]}>
       <div className="flex min-h-screen bg-background">
         <DashboardSidebar />
-        <ReportDetailContent />
+        <Suspense fallback={<div className="flex-1 p-8 text-sm text-muted-foreground">Loading…</div>}>
+          <ReportDetailContent />
+        </Suspense>
       </div>
     </RoleGuard>
   )
