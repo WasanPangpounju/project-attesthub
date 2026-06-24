@@ -28,7 +28,11 @@ export async function GET(
     const role = user.role
 
     if (role === "customer") {
-      if (r.requestedBy !== userId) {
+      const owned = await AuditRequest.findOne(
+        { _id: r.auditRequestId, customerId: userId },
+        { _id: 1 }
+      ).lean()
+      if (!owned) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
     } else if (role === "tester") {
