@@ -21,7 +21,12 @@ export async function GET() {
     let query: Record<string, any> = {}
 
     if (role === "customer") {
-      query = { requestedBy: userId }
+      const requests = await AuditRequest.find(
+        { customerId: userId },
+        { _id: 1 }
+      ).lean()
+      const requestIds = (requests as any[]).map((r) => r._id.toString())
+      query = { auditRequestId: { $in: requestIds } }
     } else if (role === "tester") {
       // Find auditRequests where this tester is assigned
       const requests = await AuditRequest.find(
