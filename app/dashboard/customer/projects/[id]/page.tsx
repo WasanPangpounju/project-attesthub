@@ -71,6 +71,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/useTranslation"
+import { ScoreCircle } from "@/components/free-scan/scan-result-views"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -107,6 +108,32 @@ type SitemapUrlEntry = {
   addedAt: string
   lastScanAt?: string
   auditReportId?: string
+}
+
+type SitemapReportUrl = {
+  _id: string
+  url: string
+  label?: string
+  report: {
+    _id: string
+    score: number
+    status: "pending" | "scanning" | "completed" | "failed"
+    wcagLevel: string
+    issues: { severity: "critical" | "serious" | "moderate" | "minor" }[]
+    generatedAt: string
+  } | null
+}
+
+type SitemapReportSummary = {
+  totalUrls: number
+  scannedUrls: number
+  avgScore: number
+  criticalCount: number
+  seriousCount: number
+  moderateCount: number
+  minorCount: number
+  wcagPassCount: number
+  wcagFailCount: number
 }
 
 type AuditRequest = {
@@ -209,6 +236,21 @@ function getSeverityClass(severity: string): string {
     case "medium": return "bg-yellow-100 text-yellow-800"
     case "low": return "bg-blue-100 text-blue-800"
     default: return "bg-gray-100 text-gray-600"
+  }
+}
+
+function autoScanStatusBadge(status?: "pending" | "scanning" | "completed" | "failed") {
+  switch (status) {
+    case "completed":
+      return <Badge className="bg-green-100 text-green-700 border-green-200">เสร็จสิ้น</Badge>
+    case "scanning":
+      return <Badge className="bg-blue-100 text-blue-700 border-blue-200 animate-pulse">กำลังสแกน</Badge>
+    case "failed":
+      return <Badge className="bg-red-100 text-red-700 border-red-200">ล้มเหลว</Badge>
+    case "pending":
+      return <Badge className="bg-gray-100 text-gray-600 border-gray-200">รอดำเนินการ</Badge>
+    default:
+      return <Badge variant="secondary">ยังไม่สแกน</Badge>
   }
 }
 
@@ -472,6 +514,12 @@ export default function CustomerProjectDetailPage() {
 
   const [scanning, setScanning] = useState(false)
 
+  // Auto-scan reports
+  const [autoReportOpen, setAutoReportOpen] = useState(false)
+  const [autoReportData, setAutoReportData] = useState<{ urls: SitemapReportUrl[]; summary: SitemapReportSummary } | null>(null)
+  const [autoReportLoading, setAutoReportLoading] = useState(false)
+  const [autoReportFetched, setAutoReportFetched] = useState(false)
+
   const commentInputRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch project
@@ -652,6 +700,34 @@ export default function CustomerProjectDetailPage() {
     load()
     return () => { cancelled = true }
   }, [id, sitemapOpen, sitemapFetched])
+
+  // Fetch auto-scan reports on first expand
+  useEffect(() => {
+    if (!id || !autoReportOpen || autoReportFetched) return
+    let cancelled = false
+
+    async function load() {
+      setAutoReportLoading(true)
+      try {
+        const res = await fetch(`/api/audit-requests/${id}/sitemap/reports`, { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to fetch reports")
+        const json = await res.json()
+        if (!cancelled) {
+          setAutoReportData(
+            json.data ? { urls: json.data.urls ?? [], summary: json.data.summary } : null
+          )
+          setAutoReportFetched(true)
+        }
+      } catch {
+        if (!cancelled) toast.error("Failed to load auto-scan reports")
+      } finally {
+        if (!cancelled) setAutoReportLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [id, autoReportOpen, autoReportFetched])
 
   async function handleAddUrl() {
     if (!id || !newUrl) return
@@ -1539,6 +1615,128 @@ export default function CustomerProjectDetailPage() {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* ── Section 5.8: Auto-Scan Reports (collapsible) ───────────────── */}
+            <Card>
+              <button
+                type="button"
+                className="w-full flex items-center justify-between p-6 text-left hover:bg-muted/30 transition-colors rounded-lg"
+                onClick={() => setAutoReportOpen((o) => !o)}
+                aria-expanded={autoReportOpen}
+              >
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-green-600" aria-hidden="true" />
+                  <CardTitle className="text-base">รายงานจากเครื่องมือตรวจอัตโนมัติ</CardTitle>
+                </div>
+                {autoReportOpen ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                )}
+              </button>
+
+              {autoReportOpen && (
+                <CardContent className="pt-0 space-y-4">
+                  <Separator />
+
+                  {autoReportLoading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-24 w-full rounded-lg" />
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                      <Skeleton className="h-12 w-full rounded-lg" />
+                    </div>
+                  ) : !autoReportData || autoReportData.urls.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Zap className="mx-auto h-10 w-10 mb-2 opacity-30" aria-hidden="true" />
+                      <p className="text-sm">ยังไม่มี URL สำหรับสแกน</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Summary */}
+                      {autoReportData.summary.scannedUrls > 0 ? (
+                        <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-muted/30 rounded-lg">
+                          <ScoreCircle score={autoReportData.summary.avgScore} size={100} showLabel={false} />
+                          <div className="flex-1 w-full space-y-3">
+                            <div className="flex flex-wrap gap-2">
+                              <Badge className="bg-red-100 text-red-700 border-red-200">
+                                Critical {autoReportData.summary.criticalCount}
+                              </Badge>
+                              <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                                Serious {autoReportData.summary.seriousCount}
+                              </Badge>
+                              <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                                Moderate {autoReportData.summary.moderateCount}
+                              </Badge>
+                              <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                                Minor {autoReportData.summary.minorCount}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              สแกนแล้ว {autoReportData.summary.scannedUrls}/{autoReportData.summary.totalUrls} URL
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          ยังไม่มีผลตรวจ กรุณารอผู้ดูแลระบบสแกน
+                        </p>
+                      )}
+
+                      {/* URL list */}
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>URL</TableHead>
+                            <TableHead>คะแนน</TableHead>
+                            <TableHead>WCAG Level</TableHead>
+                            <TableHead>สถานะ</TableHead>
+                            <TableHead className="w-10" />
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {autoReportData.urls.map((entry) => (
+                            <TableRow key={entry._id}>
+                              <TableCell className="max-w-xs truncate">
+                                <a
+                                  href={entry.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline"
+                                >
+                                  {entry.url}
+                                </a>
+                              </TableCell>
+                              <TableCell>
+                                {entry.report ? (
+                                  <Badge variant="outline">{entry.report.score}</Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">รอสแกน</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {entry.report ? (
+                                  <Badge variant="secondary">WCAG {entry.report.wcagLevel}</Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>{autoScanStatusBadge(entry.report?.status)}</TableCell>
+                              <TableCell>
+                                {entry.report && entry.report.status === "completed" && (
+                                  <Link href={`/dashboard/reports/${entry.report._id}?from=${id}`}>
+                                    <Button variant="outline" size="sm">ดูรายละเอียด</Button>
+                                  </Link>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </>
+                  )}
                 </CardContent>
               )}
             </Card>
