@@ -37,6 +37,7 @@ export async function POST(
       { "urls.$": 1 }
     ).lean() as any
     const sitemapUrlId = sitemap?.urls?.[0]?._id?.toString() ?? ""
+    const normalizedUrl = report.url.startsWith("http") ? report.url : `https://${report.url}`
 
     await AuditReport.findByIdAndUpdate(id, {
       $set: {
@@ -47,6 +48,7 @@ export async function POST(
         pagesScanned: 0,
         scanDurationMs: 0,
         generatedAt: new Date(),
+        url: normalizedUrl,
       },
       $unset: {
         aiSummary: 1,
@@ -61,7 +63,7 @@ export async function POST(
       type: "sitemap_url",
       auditRequestId: report.auditRequestId,
       sitemapUrlId,
-      url: report.url,
+      url: normalizedUrl,
       reportId: id,
     }
     const job = await scanQueue.add("sitemap_url_scan", jobData)
