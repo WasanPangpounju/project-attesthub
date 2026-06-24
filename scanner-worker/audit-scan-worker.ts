@@ -87,8 +87,10 @@ export async function runAuditUrlScan(data: AuditScanJobData): Promise<void> {
       return route.continue();
     });
 
+    const targetUrl = url.startsWith('http') ? url : `https://${url}`;
+
     const page = await context.newPage();
-    await page.goto(url, { timeout: 30_000, waitUntil: 'domcontentloaded' });
+    await page.goto(targetUrl, { timeout: 30_000, waitUntil: 'domcontentloaded' });
 
     await page.addScriptTag({ content: axeSource.source });
 
@@ -115,7 +117,7 @@ export async function runAuditUrlScan(data: AuditScanJobData): Promise<void> {
         element: v.nodes?.[0]?.html ?? '',
         description: v.description ?? '',
         recommendation: v.nodes?.[0]?.failureSummary ?? '',
-        pageUrl: url,
+        pageUrl: targetUrl,
         impact: v.impact ?? 'moderate',
       };
     });
@@ -155,10 +157,18 @@ export async function runAuditUrlScan(data: AuditScanJobData): Promise<void> {
       },
     });
 
-    await sitemapsCol.updateOne(
-      { auditRequestId, 'urls._id': new mongoose.Types.ObjectId(sitemapUrlId) },
-      { $set: { 'urls.$.lastScanAt': new Date(), 'urls.$.auditReportId': reportId } }
-    );
+    const sitemapOid = sitemapUrlId && /^[a-f\d]{24}$/i.test(sitemapUrlId)
+      ? new mongoose.Types.ObjectId(sitemapUrlId)
+      : null;
+
+    if (sitemapOid) {
+      await sitemapsCol.updateOne(
+        { auditRequestId, 'urls._id': sitemapOid },
+        { $set: { 'urls.$.lastScanAt': new Date(), 'urls.$.auditReportId': reportId } }
+      );
+    } else {
+      console.warn(`[audit-scan-worker] ${reportId} skipped ProjectSitemap update — invalid sitemapUrlId:`, sitemapUrlId);
+    }
 
     console.log(
       `[audit-scan-worker] ${reportId} done — score=${score}, issues=${issues.length}, duration=${scanDurationMs}ms`
