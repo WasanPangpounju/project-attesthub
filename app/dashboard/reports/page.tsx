@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { AuditReport, ReportStatus, WcagLevel } from "@/lib/types/audit-report"
-import { Search, Globe, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { Search, Globe, Plus, RefreshCw, Trash2, Layers, List, ChevronDown, ChevronRight, Map as MapIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/useTranslation"
 import { toast } from "sonner"
 
@@ -187,6 +187,8 @@ function ReportsContent() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [rescanning, setRescanning] = useState<Set<string>>(new Set())
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<"flat" | "grouped">("flat")
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetch("/api/profile", { cache: "no-store" })
@@ -293,6 +295,35 @@ function ReportsContent() {
     return list
   }, [reports, search, statusFilter, wcagFilter])
 
+  const grouped = useMemo(() => {
+    const map = new Map<string, { projectName: string; auditRequestId: string; reports: AuditReport[] }>()
+    for (const r of filtered) {
+      const key = r.auditRequestId || "unknown"
+      if (!map.has(key)) {
+        map.set(key, { projectName: r.projectName, auditRequestId: key, reports: [] })
+      }
+      map.get(key)!.reports.push(r)
+    }
+    // sort: project ที่มี report ล่าสุดขึ้นก่อน
+    return [...map.values()].sort((a, b) => {
+      const aLatest = Math.max(...a.reports.map((r) => new Date(r.generatedAt).getTime()))
+      const bLatest = Math.max(...b.reports.map((r) => new Date(r.generatedAt).getTime()))
+      return bLatest - aLatest
+    })
+  }, [filtered])
+
+  function toggleGroup(auditRequestId: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(auditRequestId)) {
+        next.delete(auditRequestId)
+      } else {
+        next.add(auditRequestId)
+      }
+      return next
+    })
+  }
+
   return (
     <div className="flex-1 flex flex-col">
       <DashboardHeader />
@@ -304,12 +335,32 @@ function ReportsContent() {
             <p className="text-muted-foreground mt-1">{s.subtitle}</p>
           </div>
           {role === "admin" && (
-            <Link href="/dashboard/admin/scan">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                {s.newScan}
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center rounded-md border p-1 gap-1">
+                <Button
+                  size="sm"
+                  variant={viewMode === "flat" ? "secondary" : "ghost"}
+                  onClick={() => setViewMode("flat")}
+                  aria-label="Flat view"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={viewMode === "grouped" ? "secondary" : "ghost"}
+                  onClick={() => setViewMode("grouped")}
+                  aria-label="Grouped by project view"
+                >
+                  <Layers className="h-4 w-4" />
+                </Button>
+              </div>
+              <Link href="/dashboard/admin/scan">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  {s.newScan}
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
 
@@ -363,6 +414,56 @@ function ReportsContent() {
             <Globe className="h-10 w-10 mx-auto mb-3 opacity-30" />
             <p className="font-medium">{s.noReports}</p>
             <p className="text-sm mt-1">{s.noReportsHint}</p>
+          </div>
+        ) : viewMode === "grouped" && role === "admin" ? (
+          <div className="space-y-6">
+            {grouped.map((group) => {
+              const isCollapsed = collapsedGroups.has(group.auditRequestId)
+              return (
+                <div key={group.auditRequestId} className="space-y-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 text-left"
+                      onClick={() => toggleGroup(group.auditRequestId)}
+                    >
+                      {isCollapsed ? (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="font-semibold text-lg">{group.projectName}</span>
+                      <Badge variant="secondary">{group.reports.length} URL</Badge>
+                    </button>
+
+                    {group.auditRequestId !== "unknown" && (
+                      <Link href={`/dashboard/reports/${group.auditRequestId}/sitemap`}>
+                        <Button size="sm" variant="outline" className="gap-2">
+                          <MapIcon className="h-4 w-4" />
+                          ดูภาพรวม sitemap
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+
+                  {!isCollapsed && (
+                    <div className="space-y-4">
+                      {group.reports.map((report) => (
+                        <ReportCard
+                          key={report.id}
+                          report={report}
+                          s={s}
+                          isAdmin={role === "admin"}
+                          isRescanning={rescanning.has(report.id)}
+                          onRescan={handleRescan}
+                          onDeleteRequest={setPendingDeleteId}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         ) : (
           <div className="space-y-4">
