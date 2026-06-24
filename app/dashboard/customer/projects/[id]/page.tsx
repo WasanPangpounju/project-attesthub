@@ -1326,6 +1326,12 @@ export default function CustomerProjectDetailPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">{sitemapUrls.length} URL(s) tracked</p>
                     <div className="flex gap-2">
+                      <Link href={`/dashboard/reports/${id}/sitemap`}>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <FileText className="h-4 w-4" aria-hidden="true" />
+                          ดูรายงาน
+                        </Button>
+                      </Link>
                       <Button
                         variant="outline"
                         size="sm"

@@ -2285,6 +2285,12 @@ export default function AdminProjectDetailPage() {
                       <CardDescription>{sitemapUrls.length} URL(s) tracked</CardDescription>
                     </div>
                     <div className="flex gap-2">
+                      <Link href={`/dashboard/reports/${id}/sitemap`}>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <FileText className="h-4 w-4" aria-hidden="true" />
+                          ดูรายงาน
+                        </Button>
+                      </Link>
                       <Button
                         variant="outline"
                         size="sm"
