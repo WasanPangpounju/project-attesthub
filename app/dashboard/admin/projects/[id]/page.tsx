@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -58,7 +58,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   ArrowLeft, Pencil, Loader2, AlertCircle, Users, Trash2,
   GripVertical, ChevronDown, ChevronUp, Plus, FileText, ArrowUp, ArrowDown,
-  Globe, Link2, Zap,
+  Globe, Link2, Zap, BookOpen, Download,
 } from "lucide-react";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { DashboardHeader } from "@/components/dashboard-header";
@@ -177,6 +177,8 @@ interface TestCase {
   expectedResult: string;
   priority: "low" | "medium" | "high" | "critical";
   wcagCriteria?: string[];
+  libId?: string;
+  disabilityTypes?: string[];
   order: number;
   results: TesterResult[];
   recommendations: IRecommendationLocal[];
@@ -193,6 +195,26 @@ interface TCFormState {
   steps: TestStep[];
   order: string;
   wcagCriteria: string[];
+  libId?: string;
+  disabilityTypes: string[];
+}
+
+// Library entry shape returned by GET /api/library
+interface LibraryEntry {
+  _id: string;
+  libId: string;
+  wcagCriterion: string;
+  wcagTitle: string;
+  wcagLevel: "A" | "AA" | "AAA";
+  wcagPrinciple: "Perceivable" | "Operable" | "Understandable" | "Robust";
+  title: string;
+  description: string;
+  steps: string[];
+  expectedResult: string;
+  failCondition: string;
+  disabilityTypes: string[];
+  assistiveTech: string[];
+  applicableWhen: string;
 }
 
 interface IRecommendationLocal {
@@ -240,6 +262,7 @@ const workStatusColors: Record<TesterWorkStatus, string> = {
 const DEFAULT_SCENARIO_FORM = { title: "", description: "", assignedTesterId: "", order: "" };
 const DEFAULT_TC_FORM: TCFormState = {
   title: "", description: "", priority: "medium", expectedResult: "", steps: [], order: "", wcagCriteria: [],
+  libId: undefined, disabilityTypes: [],
 };
 const DEFAULT_REC_FORM: RecFormState = {
   title: "", description: "", severity: "medium",
@@ -456,6 +479,15 @@ export default function AdminProjectDetailPage() {
   const [tcForm, setTCForm] = useState<TCFormState>({ ...DEFAULT_TC_FORM });
   const [tcFormError, setTCFormError] = useState("");
   const [submittingTC, setSubmittingTC] = useState(false);
+
+  // ─── Library import ─────────────────────────────────────────────────────
+  const [showLibraryDialog, setShowLibraryDialog] = useState(false);
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryPrinciple, setLibraryPrinciple] = useState("");
+  const [libraryLevel, setLibraryLevel] = useState("");
+  const [libraryEntries, setLibraryEntries] = useState<LibraryEntry[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const librarySearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ─── Recommendations ──────────────────────────────────────────────────────
   const [addRecOpen, setAddRecOpen] = useState<string | null>(null);
@@ -809,6 +841,8 @@ export default function AdminProjectDetailPage() {
       steps: tc.steps.map((s) => ({ ...s })),
       order: String(tc.order),
       wcagCriteria: tc.wcagCriteria ?? [],
+      libId: tc.libId,
+      disabilityTypes: tc.disabilityTypes ?? [],
     });
     setTCFormError("");
     setAddTCOpen(true);
@@ -861,6 +895,8 @@ export default function AdminProjectDetailPage() {
         expectedResult: tcForm.expectedResult.trim(),
         steps: tcForm.steps,
         wcagCriteria: tcForm.wcagCriteria,
+        libId: tcForm.libId,
+        disabilityTypes: tcForm.disabilityTypes,
       };
       if (tcForm.order !== "") body.order = Number(tcForm.order);
       const tcUrl = editTC
@@ -889,6 +925,65 @@ export default function AdminProjectDetailPage() {
     } finally {
       setSubmittingTC(false);
     }
+  }
+
+  // ─── Library import ─────────────────────────────────────────────────────
+
+  async function fetchLibrary(overrides?: { search?: string; principle?: string; level?: string }) {
+    setLibraryLoading(true);
+    try {
+      const search = overrides?.search ?? librarySearch;
+      const principle = overrides?.principle ?? libraryPrinciple;
+      const level = overrides?.level ?? libraryLevel;
+      const params = new URLSearchParams();
+      if (search.trim()) params.set("search", search.trim());
+      if (principle) params.set("principle", principle);
+      if (level) params.set("wcagLevel", level);
+      params.set("limit", "100");
+      const res = await fetch(`/api/library?${params.toString()}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch library");
+      const json = await res.json() as { data: LibraryEntry[] };
+      setLibraryEntries(Array.isArray(json.data) ? json.data : []);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load library");
+    } finally {
+      setLibraryLoading(false);
+    }
+  }
+
+  function handleLibrarySearchChange(value: string) {
+    setLibrarySearch(value);
+    if (librarySearchDebounceRef.current) clearTimeout(librarySearchDebounceRef.current);
+    librarySearchDebounceRef.current = setTimeout(() => fetchLibrary({ search: value }), 300);
+  }
+
+  function handleLibraryPrincipleChange(value: string) {
+    const principle = value === "all" ? "" : value;
+    setLibraryPrinciple(principle);
+    fetchLibrary({ principle });
+  }
+
+  function handleLibraryLevelChange(value: string) {
+    const level = value === "all" ? "" : value;
+    setLibraryLevel(level);
+    fetchLibrary({ level });
+  }
+
+  function handleImportFromLibrary(entry: LibraryEntry) {
+    setTCForm((prev) => ({
+      ...prev,
+      title: entry.title,
+      description: entry.description || prev.description,
+      expectedResult: entry.expectedResult,
+      steps: entry.steps.map((instruction, i) => ({ order: i, instruction })),
+      wcagCriteria: prev.wcagCriteria.includes(entry.wcagCriterion)
+        ? prev.wcagCriteria
+        : [...prev.wcagCriteria, entry.wcagCriterion],
+      disabilityTypes: Array.from(new Set([...prev.disabilityTypes, ...entry.disabilityTypes])),
+      libId: entry.libId,
+    }));
+    setShowLibraryDialog(false);
+    toast.success(`นำเข้า ${entry.libId} แล้ว`);
   }
 
   async function handleDeleteTC(tcId: string) {
@@ -1967,7 +2062,23 @@ export default function AdminProjectDetailPage() {
                 <Sheet open={addTCOpen} onOpenChange={(open) => { setAddTCOpen(open); if (!open) { setEditTC(null); setTCFormError(""); } }}>
                   <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
                     <SheetHeader className="mb-4">
-                      <SheetTitle>{editTC ? "Edit Test Case" : "Add Test Case"}</SheetTitle>
+                      <div className="flex items-center justify-between gap-2 pr-8">
+                        <SheetTitle>{editTC ? "Edit Test Case" : "Add Test Case"}</SheetTitle>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs h-7 shrink-0"
+                          onClick={() => { setShowLibraryDialog(true); fetchLibrary(); }}
+                        >
+                          <BookOpen className="h-3.5 w-3.5" />
+                          Import จาก Library
+                        </Button>
+                      </div>
+                      {tcForm.libId && (
+                        <p className="text-xs text-muted-foreground">
+                          Imported from <span className="font-mono">{tcForm.libId}</span>
+                        </p>
+                      )}
                     </SheetHeader>
 
                     <div className="space-y-4">
@@ -2140,6 +2251,98 @@ export default function AdminProjectDetailPage() {
                     </SheetFooter>
                   </SheetContent>
                 </Sheet>
+
+                {/* Library Import Dialog */}
+                <Dialog open={showLibraryDialog} onOpenChange={setShowLibraryDialog}>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>เลือก Test Case จาก Library</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <Input
+                        placeholder="ค้นหา WCAG criterion, ชื่อ..."
+                        value={librarySearch}
+                        onChange={(e) => handleLibrarySearchChange(e.target.value)}
+                        className="sm:col-span-1"
+                      />
+                      <Select
+                        value={libraryPrinciple || "all"}
+                        onValueChange={handleLibraryPrincipleChange}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">ทั้งหมด</SelectItem>
+                          <SelectItem value="Perceivable">Perceivable</SelectItem>
+                          <SelectItem value="Operable">Operable</SelectItem>
+                          <SelectItem value="Understandable">Understandable</SelectItem>
+                          <SelectItem value="Robust">Robust</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={libraryLevel || "all"}
+                        onValueChange={handleLibraryLevelChange}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">ทั้งหมด</SelectItem>
+                          <SelectItem value="A">A</SelectItem>
+                          <SelectItem value="AA">AA</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="max-h-96 overflow-y-auto space-y-2 mt-2">
+                      {libraryLoading ? (
+                        <div className="flex items-center justify-center py-10 text-muted-foreground">
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        </div>
+                      ) : libraryEntries.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-10">ไม่พบรายการ</p>
+                      ) : (
+                        libraryEntries.map((entry) => (
+                          <div
+                            key={entry._id}
+                            className="border rounded-lg p-3 flex items-start justify-between gap-3 hover:bg-accent/50"
+                          >
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline" className="text-xs font-mono shrink-0">{entry.libId}</Badge>
+                                <Badge variant="outline" className="text-xs font-mono shrink-0">{entry.wcagCriterion}</Badge>
+                                <Badge className="text-xs shrink-0">{entry.wcagLevel}</Badge>
+                                <span className="text-xs text-muted-foreground truncate">{entry.wcagPrinciple} · {entry.wcagTitle}</span>
+                              </div>
+                              <p className="text-sm font-medium">{entry.title}</p>
+                              {entry.applicableWhen && (
+                                <p className="text-xs text-muted-foreground line-clamp-2">{entry.applicableWhen}</p>
+                              )}
+                              {entry.disabilityTypes.length > 0 && (
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  {entry.disabilityTypes.map((d) => (
+                                    <Badge key={d} variant="outline" className="text-[10px] px-1.5 py-0">{d}</Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 text-xs h-7 shrink-0"
+                              onClick={() => handleImportFromLibrary(entry)}
+                            >
+                              <Download className="h-3 w-3" />
+                              นำเข้า
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowLibraryDialog(false)}>ปิด</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Add / Edit Recommendation Sheet */}
                 <Sheet open={!!addRecOpen} onOpenChange={(open) => { if (!open) { setAddRecOpen(null); setEditRec(null); setRecFormError(""); } }}>
