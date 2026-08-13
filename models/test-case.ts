@@ -43,6 +43,8 @@ export interface ITestCase {
   expectedResult: string;
   priority: "low" | "medium" | "high" | "critical";
   wcagCriteria?: string[];
+  libId?: string; // TestCaseLibrary.libId this test case was imported from, if any
+  disabilityTypes?: string[]; // e.g. ["blind","low_vision","deaf","hard_of_hearing","motor","cognitive"]
   order: number;
   results: ITesterResult[];
   recommendations: IRecommendation[];
@@ -118,6 +120,8 @@ const TestCaseSchema = new Schema<ITestCase>(
       default: "medium",
     },
     wcagCriteria: { type: [String], default: [] },
+    libId: { type: String },
+    disabilityTypes: { type: [String], default: [] },
     order: { type: Number, default: 0 },
     results: { type: [TesterResultSchema], default: [] },
     recommendations: { type: [RecommendationSchema], default: [] },
