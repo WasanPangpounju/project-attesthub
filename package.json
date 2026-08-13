@@ -74,6 +74,7 @@
     "baseline-browser-mapping": "^2.10.23",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
+    "tsx": "^4.23.12",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
   }
